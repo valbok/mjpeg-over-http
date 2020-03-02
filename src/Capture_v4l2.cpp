@@ -105,7 +105,7 @@ static bool init_device(int fd, const std::string &dev, unsigned w, unsigned h, 
         crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         crop.c = cropcap.defrect; /* reset to default */
 
-        if (-1 == xioctl(fd, VIDIOC_S_CROP, &crop)) {
+        if (xioctl(fd, VIDIOC_S_CROP, &crop) == -1) {
             switch (errno) {
             case EINVAL:
                 /* Cropping not supported. */
@@ -161,15 +161,15 @@ static void uninit_device(void **buffers, unsigned &n_buffers)
     n_buffers = 0;
 }
 
-static void *init_mmap(int fd, const std::string &dev, unsigned &n_buffers)
+static void *init_mmap(int fd, const std::string &dev, unsigned buffers_count)
 {
     struct v4l2_requestbuffers req;
     CLEAR(req);
-    req.count = 4;
+    req.count = buffers_count;
     req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     req.memory = V4L2_MEMORY_MMAP;
 
-    if (-1 == xioctl(fd, VIDIOC_REQBUFS, &req)) {
+    if (xioctl(fd, VIDIOC_REQBUFS, &req) == -1) {
         if (EINVAL == errno)
             fprintf(stderr, "%s does not support memory mapping\n", dev.c_str());
         else
@@ -188,32 +188,32 @@ static void *init_mmap(int fd, const std::string &dev, unsigned &n_buffers)
         return nullptr;
     }
 
-    for (; n_buffers < req.count; ++n_buffers) {
+    for (unsigned i = 0; i < buffers_count; ++i) {
         struct v4l2_buffer buf;
 
         CLEAR(buf);
 
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
-        buf.index = n_buffers;
+        buf.index = i;
 
-        if (-1 == xioctl(fd, VIDIOC_QUERYBUF, &buf)) {
+        if (xioctl(fd, VIDIOC_QUERYBUF, &buf) == -1) {
             print_errno("VIDIOC_QUERYBUF");
-            uninit_device((void **)&buffers, n_buffers);
+            uninit_device((void **)&buffers, i);
             return nullptr;
         }
 
-        buffers[n_buffers].length = buf.length;
-        buffers[n_buffers].start =
+        buffers[i].length = buf.length;
+        buffers[i].start =
             mmap(NULL /* start anywhere */,
                   buf.length,
                   PROT_READ | PROT_WRITE /* required */,
                   MAP_SHARED /* recommended */,
                   fd, buf.m.offset);
 
-        if (MAP_FAILED == buffers[n_buffers].start) {
+        if (MAP_FAILED == buffers[i].start) {
             print_errno("mmap");
-            uninit_device((void **)&buffers, n_buffers);
+            uninit_device((void **)&buffers, i);
             return nullptr;
         }
     }
@@ -341,6 +341,7 @@ bool Capture_v4l2::start(unsigned width_hint, unsigned height_hint, unsigned pix
     }
 
     m->fmt = fmt.fmt.pix;
+    m->buffers_count = 4;
     m->buffers = init_mmap(m->fd, m->device, m->buffers_count);
     if (!m->buffers) {
         close_device(m->fd);
