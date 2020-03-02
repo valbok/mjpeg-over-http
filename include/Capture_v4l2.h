@@ -27,6 +27,9 @@ public:
     unsigned pixel_format() const;
 
 private:
+    Capture_v4l2(const Capture_v4l2 &other) = delete;
+    Capture_v4l2 &operator=(const Capture_v4l2 &other) = delete;
+
     Capture_v4l2_private *m = nullptr;
 };
 
