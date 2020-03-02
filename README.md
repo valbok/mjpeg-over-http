@@ -10,8 +10,8 @@ Useful when there is no [GStreamer](https://gstreamer.freedesktop.org/) availabl
 
 # Build
   
-    $ meson build
-    $ ninja -C build
+    $ meson build --prefix=/path/to/install
+    $ meson install -C build/
    
 # Example
 
