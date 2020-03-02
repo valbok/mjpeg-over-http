@@ -310,12 +310,12 @@ unsigned Capture_v4l2::sizeImage() const
     return m->fmt.sizeimage;
 }
 
-unsigned Capture_v4l2::nativeHeight() const
+unsigned Capture_v4l2::nativeWidth() const
 {
     return m->fmt.width;
 }
 
-unsigned Capture_v4l2::nativeWidth() const
+unsigned Capture_v4l2::nativeHeight() const
 {
     return m->fmt.height;
 }
