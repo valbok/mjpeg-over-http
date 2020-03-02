@@ -2,7 +2,8 @@
 
 Wrapper to [Video4Linux](https://en.wikipedia.org/wiki/Video4Linux) to simplify reading of video frames.
 Currently supports only V4L2_BUF_TYPE_VIDEO_CAPTURE buffer type and V4L2_MEMORY_MMAP memory.
-By default captures frames in Motion-JPEG (V4L2_PIX_FMT_MJPEG).
+
+By default Motion-JPEG (V4L2_PIX_FMT_MJPEG) is used.
 
 Useful when there is no [GStreamer](https://gstreamer.freedesktop.org/) available but need to process video buffers.
 
