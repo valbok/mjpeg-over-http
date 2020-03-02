@@ -9,10 +9,10 @@ By default Motion-JPEG (V4L2_PIX_FMT_MJPEG) is used.
 Useful when there is no [GStreamer](https://gstreamer.freedesktop.org/) available but need to process video buffers.
 
 # Build
-  
+
     $ meson build --prefix=/path/to/install
     $ ninja install -C build/
-   
+
 # Example
 
 Following will show you a list of supported fps per pixel format.
@@ -27,13 +27,13 @@ Following will show you a list of supported fps per pixel format.
 So using Motion-JPEG and 1920x1080, the driver provides video frames in 30 fps. Let's try:
 
     Capture_v4l2 cap("/dev/video0");
-    if (!cap.start(1920, 1080))       
+    if (!cap.start(1920, 1080))
       return 1;
-    
-    unsigned char *buf = new unsigned char[cap.sizeImage()];
-    if (cap.readFrame(buf)) {
+
+    unsigned char *buf = new unsigned char[cap.bytes()];
+    if (cap.read_frame(buf)) {
       FILE *fp = fopen("frame.jpg", "wb");
-      fwrite(buf, cap.sizeImage(), 1, fp);
+      fwrite(buf, cap.bytes(), 1, fp);
       fflush(fp);
       fclose(fp);
     }

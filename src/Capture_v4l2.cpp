@@ -82,7 +82,7 @@ static bool init_device(int fd, const std::string &dev, unsigned w, unsigned h, 
     if (xioctl(fd, VIDIOC_QUERYCAP, &cap) == -1) {
         if (EINVAL == errno)
             fprintf(stderr, "%s is no V4L2 device\n", dev.c_str());
-        else 
+        else
             print_errno("VIDIOC_QUERYCAP");
         return false;
     }
@@ -253,9 +253,8 @@ static void stop_capturing(int fd)
         print_errno("VIDIOC_STREAMOFF");
 }
 
-static bool read_frame(int fd, void *buffers, void *src)
+static unsigned read_frame(int fd, struct v4l2_buffer &buf)
 {
-    struct v4l2_buffer buf;
     CLEAR(buf);
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
@@ -263,24 +262,24 @@ static bool read_frame(int fd, void *buffers, void *src)
     if (xioctl(fd, VIDIOC_DQBUF, &buf) == -1) {
         switch (errno) {
         case EAGAIN:
-            return false;
+            return 0;
         case EIO:
             /* Could ignore EIO, see spec. */
             /* fall through */
         default:
             print_errno("VIDIOC_DQBUF");
-            return false;
+            return 0;
         }
     }
 
-    memcpy(src, ((Buffer *)buffers)[buf.index].start, buf.bytesused);
+    unsigned bytes = buf.bytesused;
 
     if (xioctl(fd, VIDIOC_QBUF, &buf) == -1) {
         print_errno("VIDIOC_QBUF");
-        return false;
+        return 0;
     }
 
-    return true;
+    return bytes;
 }
 
 struct Capture_v4l2_private
@@ -305,24 +304,24 @@ Capture_v4l2::~Capture_v4l2()
     delete m;
 }
 
-unsigned Capture_v4l2::sizeImage() const
-{
-    return m->fmt.sizeimage;
-}
-
-unsigned Capture_v4l2::nativeWidth() const
+unsigned Capture_v4l2::native_width() const
 {
     return m->fmt.width;
 }
 
-unsigned Capture_v4l2::nativeHeight() const
+unsigned Capture_v4l2::native_height() const
 {
     return m->fmt.height;
 }
 
-unsigned Capture_v4l2::bytesPerline() const
+unsigned Capture_v4l2::bytes_perline() const
 {
     return m->fmt.bytesperline;
+}
+
+unsigned Capture_v4l2::pixel_format() const
+{
+    return m->fmt.pixelformat;
 }
 
 bool Capture_v4l2::start(unsigned width_hint, unsigned height_hint, unsigned pixel_format)
@@ -369,10 +368,10 @@ void Capture_v4l2::stop()
     m->active = false;
 }
 
-bool Capture_v4l2::readFrame(unsigned char *bits)
+unsigned Capture_v4l2::read_frame(void *&dst) const
 {
     if (!m->active)
-        return false;
+        return 0;
 
     for (;;) {
         fd_set fds;
@@ -398,11 +397,15 @@ bool Capture_v4l2::readFrame(unsigned char *bits)
             break;
         }
 
-        if (read_frame(m->fd, m->buffers, bits))
-            return true;
+        struct v4l2_buffer buf;
+        unsigned len = ::read_frame(m->fd, buf);
+        if (len) {
+            dst = ((Buffer *)m->buffers)[buf.index].start;
+            return len;
+        }
 
         /* EAGAIN - continue select loop. */
     }
 
-    return false;
+    return 0;
 }

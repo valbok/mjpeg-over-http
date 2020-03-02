@@ -16,15 +16,15 @@ public:
 
     bool start(unsigned width_hint = 0, unsigned height_hint = 0, unsigned pixel_format = 0);
     void stop();
-    bool isActive() const;
+    bool is_active() const;
 
-    bool readFrame(unsigned char *bits);
+    unsigned read_frame(void *&dst) const;
 
     std::string device() const;
-    unsigned sizeImage() const;
-    unsigned nativeWidth() const;
-    unsigned nativeHeight() const;
-    unsigned bytesPerline() const;
+    unsigned native_width() const;
+    unsigned native_height() const;
+    unsigned bytes_perline() const;
+    unsigned pixel_format() const;
 
 private:
     Capture_v4l2_private *m = nullptr;

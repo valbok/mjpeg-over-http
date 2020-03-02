@@ -12,11 +12,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    auto buf = new unsigned char[cap.sizeImage()];
+    void *buf = nullptr;
     int frame_count = argc > 1 ? strtol(argv[1], NULL, 0) : 10;
     char filename[15];
     for (int i = 0; i < frame_count; ++i) {
-        if (!cap.readFrame(buf)) {
+        unsigned len = cap.read_frame(buf);
+        if (!len) {
             fprintf(stderr, "Could not read frame.\n");
             continue;
         }
@@ -24,11 +25,10 @@ int main(int argc, char **argv)
         sprintf(filename, "frame-%d.jpg", i);
         fprintf(stdout, "Writing %s\n", filename);
         FILE *fp = fopen(filename, "wb");
-        fwrite(buf, cap.sizeImage(), 1, fp);
+        fwrite(buf, len, 1, fp);
         fflush(fp);
         fclose(fp);
     }
 
-    delete [] buf;
 	return 0;
 }
