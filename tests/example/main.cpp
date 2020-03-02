@@ -12,23 +12,23 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    auto buf = new unsigned char[cap.sizeImage()];
     int frame_count = argc > 1 ? strtol(argv[1], NULL, 0) : 10;
-    int i = frame_count; 
-    while (i --> 0) {
-        unsigned char *buf = new unsigned char[cap.sizeImage()];
-        if (cap.readFrame(buf)) {
-            char filename[15];
-            sprintf(filename, "frame-%d.jpg", frame_count - i);
-            fprintf(stdout, "Writing %s\n", filename);
-            FILE *fp = fopen(filename, "wb");
-            fwrite(buf, cap.sizeImage(), 1, fp);
-            fflush(fp);
-            fclose(fp);
-        } else {
+    char filename[15];
+    for (int i = 0; i < frame_count; ++i) {
+        if (!cap.readFrame(buf)) {
             fprintf(stderr, "Could not read frame.\n");
+            continue;
         }
-        delete [] buf;
+
+        sprintf(filename, "frame-%d.jpg", i);
+        fprintf(stdout, "Writing %s\n", filename);
+        FILE *fp = fopen(filename, "wb");
+        fwrite(buf, cap.sizeImage(), 1, fp);
+        fflush(fp);
+        fclose(fp);
     }
 
+    delete [] buf;
 	return 0;
 }
