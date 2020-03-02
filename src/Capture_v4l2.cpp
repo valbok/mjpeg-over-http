@@ -73,7 +73,7 @@ static void close_device(int &fd)
     fd = -1;
 }
 
-static bool init_device(int fd, const std::string &dev, unsigned w, unsigned h, unsigned pixelFormat, v4l2_format *fmt)
+static bool init_device(int fd, const std::string &dev, unsigned w, unsigned h, unsigned pixel_format, v4l2_format *fmt)
 {
     struct v4l2_capability cap;
     struct v4l2_cropcap cropcap;
@@ -122,7 +122,7 @@ static bool init_device(int fd, const std::string &dev, unsigned w, unsigned h, 
     CLEAR(*fmt);
 
     fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    fmt->fmt.pix.pixelformat = pixelFormat ? pixelFormat : V4L2_PIX_FMT_MJPEG;
+    fmt->fmt.pix.pixelformat = pixel_format ? pixel_format : V4L2_PIX_FMT_MJPEG;
     fmt->fmt.pix.field = V4L2_FIELD_ANY;
     if (w || h) {
         fmt->fmt.pix.width = w;
