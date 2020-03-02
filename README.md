@@ -1,6 +1,6 @@
 # Capture v4l2
 
-Wrapper to [Video4Linux](https://en.wikipedia.org/wiki/Video4Linux) to simplify reading of video frames.
+A wrapper of [Video4Linux](https://en.wikipedia.org/wiki/Video4Linux) to simplify reading of video frames.
 
 Currently supports only V4L2_BUF_TYPE_VIDEO_CAPTURE buffer type and V4L2_MEMORY_MMAP memory.
 
