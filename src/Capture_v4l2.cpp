@@ -290,7 +290,7 @@ struct Capture_v4l2_private
     int fd = -1;
     v4l2_pix_format fmt;
     void *buffers = nullptr;
-    unsigned buffersCount = 0;
+    unsigned buffers_count = 0;
 };
 
 Capture_v4l2::Capture_v4l2(const std::string &device)
@@ -325,7 +325,7 @@ unsigned Capture_v4l2::bytesPerline() const
     return m->fmt.bytesperline;
 }
 
-bool Capture_v4l2::start(unsigned width_hint, unsigned height_hint, unsigned pixelFormat)
+bool Capture_v4l2::start(unsigned width_hint, unsigned height_hint, unsigned pixel_format)
 {
     if (m->active)
         return false;
@@ -335,20 +335,20 @@ bool Capture_v4l2::start(unsigned width_hint, unsigned height_hint, unsigned pix
         return false;
 
     v4l2_format fmt;
-    if (!init_device(m->fd, m->device, width_hint, height_hint, pixelFormat, &fmt)) {
+    if (!init_device(m->fd, m->device, width_hint, height_hint, pixel_format, &fmt)) {
         close_device(m->fd);
         return false;
     }
 
     m->fmt = fmt.fmt.pix;
-    m->buffers = init_mmap(m->fd, m->device, m->buffersCount);
+    m->buffers = init_mmap(m->fd, m->device, m->buffers_count);
     if (!m->buffers) {
         close_device(m->fd);
         return false;
     }
 
-    if (!start_capturing(m->fd, m->buffersCount)) {
-        uninit_device(&m->buffers, m->buffersCount);
+    if (!start_capturing(m->fd, m->buffers_count)) {
+        uninit_device(&m->buffers, m->buffers_count);
         close_device(m->fd);
         return false;
     }
@@ -363,7 +363,7 @@ void Capture_v4l2::stop()
         return;
 
     stop_capturing(m->fd);
-    uninit_device(&m->buffers, m->buffersCount);
+    uninit_device(&m->buffers, m->buffers_count);
     close_device(m->fd);
     m->active = false;
 }
