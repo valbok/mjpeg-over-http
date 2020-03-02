@@ -30,10 +30,11 @@ So using Motion-JPEG and 1920x1080, the driver provides video frames in 30 fps. 
     if (!cap.start(1920, 1080))
       return 1;
 
-    unsigned char *buf = new unsigned char[cap.bytes()];
-    if (cap.read_frame(buf)) {
+    void *buf = nullptr;
+    unsigned len = cap.read_frame(buf);
+    if (len) {
       FILE *fp = fopen("frame.jpg", "wb");
-      fwrite(buf, cap.bytes(), 1, fp);
+      fwrite(buf, len, 1, fp);
       fflush(fp);
       fclose(fp);
     }
