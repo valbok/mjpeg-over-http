@@ -190,7 +190,6 @@ static void *init_mmap(int fd, const std::string &dev, unsigned buffers_count)
 
     for (unsigned i = 0; i < buffers_count; ++i) {
         struct v4l2_buffer buf;
-
         CLEAR(buf);
 
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -206,12 +205,12 @@ static void *init_mmap(int fd, const std::string &dev, unsigned buffers_count)
         buffers[i].length = buf.length;
         buffers[i].start =
             mmap(NULL /* start anywhere */,
-                  buf.length,
-                  PROT_READ | PROT_WRITE /* required */,
-                  MAP_SHARED /* recommended */,
-                  fd, buf.m.offset);
+                 buf.length,
+                 PROT_READ | PROT_WRITE /* required */,
+                 MAP_SHARED /* recommended */,
+                 fd, buf.m.offset);
 
-        if (MAP_FAILED == buffers[i].start) {
+        if (buffers[i].start == MAP_FAILED) {
             print_errno("mmap");
             uninit_device((void **)&buffers, i);
             return nullptr;
@@ -289,7 +288,7 @@ struct Capture_v4l2_private
     int fd = -1;
     v4l2_pix_format fmt;
     void *buffers = nullptr;
-    unsigned buffers_count = 0;
+    unsigned buffers_count = 5;
 };
 
 Capture_v4l2::Capture_v4l2(const std::string &device)
@@ -324,7 +323,7 @@ unsigned Capture_v4l2::pixel_format() const
     return m->fmt.pixelformat;
 }
 
-bool Capture_v4l2::start(unsigned width_hint, unsigned height_hint, unsigned pixel_format)
+bool Capture_v4l2::start(unsigned width_hint, unsigned height_hint, unsigned pixel_format, unsigned buffers_count)
 {
     if (m->active)
         return false;
@@ -340,7 +339,7 @@ bool Capture_v4l2::start(unsigned width_hint, unsigned height_hint, unsigned pix
     }
 
     m->fmt = fmt.fmt.pix;
-    m->buffers_count = 4;
+    m->buffers_count = buffers_count;
     m->buffers = init_mmap(m->fd, m->device, m->buffers_count);
     if (!m->buffers) {
         close_device(m->fd);

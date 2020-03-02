@@ -14,7 +14,7 @@ public:
     Capture_v4l2(const std::string &device);
     ~Capture_v4l2();
 
-    bool start(unsigned width_hint = 0, unsigned height_hint = 0, unsigned pixel_format = 0);
+    bool start(unsigned width_hint = 0, unsigned height_hint = 0, unsigned pixel_format = 0, unsigned buffers_count = 5);
     void stop();
     bool is_active() const;
 
