@@ -15,12 +15,12 @@ Useful when there is no [GStreamer](https://gstreamer.freedesktop.org/) availabl
 
 Following will show you a list of supported fps per pixel format.
 
-  $ v4l2-ctl -d /dev/video0 --list-formats-ext
-  Type        : Video Capture
-	Pixel Format: 'MJPG' (compressed)
-	Name        : Motion-JPEG
-	Size: Discrete 1920x1080
-			Interval: Discrete 0.033s (30.000 fps)
+    $ v4l2-ctl -d /dev/video0 --list-formats-ext
+    Type        : Video Capture
+    Pixel Format: 'MJPG' (compressed)
+    Name        : Motion-JPEG
+      Size: Discrete 1920x1080
+      Interval: Discrete 0.033s (30.000 fps)
 
 So using Motion-JPEG and 1920x1080, the driver provides video frames in 30 fps. Let's try:
 
