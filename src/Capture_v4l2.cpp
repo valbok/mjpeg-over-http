@@ -372,7 +372,7 @@ void Capture_v4l2::stop()
     m->active = false;
 }
 
-unsigned Capture_v4l2::read_frame(void *&dst) const
+size_t Capture_v4l2::read_frame(void *&dst) const
 {
     if (!m->active)
         return 0;
@@ -402,7 +402,7 @@ unsigned Capture_v4l2::read_frame(void *&dst) const
         }
 
         struct v4l2_buffer buf;
-        unsigned len = ::read_frame(m->fd, buf);
+        size_t len = ::read_frame(m->fd, buf);
         if (len) {
             dst = ((Buffer *)m->buffers)[buf.index].start;
             return len;

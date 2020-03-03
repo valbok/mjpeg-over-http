@@ -18,7 +18,7 @@ public:
     void stop();
     bool is_active() const;
 
-    unsigned read_frame(void *&dst) const;
+    size_t read_frame(void *&dst) const;
 
     std::string device() const;
     size_t image_size() const;
