@@ -14,17 +14,17 @@ public:
     Capture_v4l2(const std::string &device);
     ~Capture_v4l2();
 
-    bool start(unsigned width_hint = 0, unsigned height_hint = 0, unsigned pixel_format = 0, unsigned buffers_count = 5);
+    bool start(size_t width_hint = 0, size_t height_hint = 0, size_t pixel_format = 0, size_t buffers_count = 5);
     void stop();
     bool is_active() const;
 
     unsigned read_frame(void *&dst) const;
 
     std::string device() const;
-    unsigned image_size() const;
-    unsigned native_width() const;
-    unsigned native_height() const;
-    unsigned bytes_perline() const;
+    size_t image_size() const;
+    size_t native_width() const;
+    size_t native_height() const;
+    size_t bytes_perline() const;
     unsigned pixel_format() const;
 
 private:

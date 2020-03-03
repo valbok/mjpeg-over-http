@@ -303,22 +303,22 @@ Capture_v4l2::~Capture_v4l2()
     delete m;
 }
 
-unsigned Capture_v4l2::image_size() const
+size_t Capture_v4l2::image_size() const
 {
     return m->fmt.sizeimage;
 }
 
-unsigned Capture_v4l2::native_width() const
+size_t Capture_v4l2::native_width() const
 {
     return m->fmt.width;
 }
 
-unsigned Capture_v4l2::native_height() const
+size_t Capture_v4l2::native_height() const
 {
     return m->fmt.height;
 }
 
-unsigned Capture_v4l2::bytes_perline() const
+size_t Capture_v4l2::bytes_perline() const
 {
     return m->fmt.bytesperline;
 }
@@ -328,7 +328,7 @@ unsigned Capture_v4l2::pixel_format() const
     return m->fmt.pixelformat;
 }
 
-bool Capture_v4l2::start(unsigned width_hint, unsigned height_hint, unsigned pixel_format, unsigned buffers_count)
+bool Capture_v4l2::start(size_t width_hint, size_t height_hint, size_t pixel_format, size_t buffers_count)
 {
     if (m->active)
         return false;
