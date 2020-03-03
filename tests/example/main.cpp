@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     int frame_count = argc > 1 ? strtol(argv[1], NULL, 0) : 10;
     char filename[15];
     for (int i = 0; i < frame_count; ++i) {
-        unsigned len = cap.read_frame(buf);
+        size_t len = cap.read_frame(buf);
         if (!len) {
             fprintf(stderr, "Could not read frame.\n");
             continue;
