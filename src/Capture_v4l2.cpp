@@ -303,6 +303,11 @@ Capture_v4l2::~Capture_v4l2()
     delete m;
 }
 
+unsigned Capture_v4l2::image_size() const
+{
+    return m->fmt.sizeimage;
+}
+
 unsigned Capture_v4l2::native_width() const
 {
     return m->fmt.width;

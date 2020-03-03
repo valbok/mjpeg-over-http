@@ -21,6 +21,7 @@ public:
     unsigned read_frame(void *&dst) const;
 
     std::string device() const;
+    unsigned image_size() const;
     unsigned native_width() const;
     unsigned native_height() const;
     unsigned bytes_perline() const;
