@@ -17,23 +17,23 @@
 
 namespace Capture {
 
-struct socket_private
+struct socket_listener_private
 {
     std::vector<int> sockets;
 };
 
-socket::socket()
-    : m(new socket_private)
+socket_listener::socket_listener()
+    : m(new socket_listener_private)
 {
 }
 
-socket::~socket()
+socket_listener::~socket_listener()
 {
-    stop();
+    close();
     delete m;
 }
 
-bool socket::listen(const char *host, int port)
+bool socket_listener::listen(const char *host, int port)
 {
     char name[NI_MAXHOST];
     snprintf(name, sizeof(name), "%d", port);
@@ -81,13 +81,13 @@ bool socket::listen(const char *host, int port)
     return !m->sockets.empty();
 }
 
-void socket::stop()
+void socket_listener::close()
 {
     for (size_t i = 0; i < m->sockets.size(); ++i)
-        close(m->sockets[i]);
+        ::close(m->sockets[i]);
 }
 
-int socket::accept() const
+void socket_listener::accept(std::function<void(socket &&)> f) const
 {
     fd_set fds;
     int max_fds = 0;
@@ -103,7 +103,7 @@ int socket::accept() const
         err = select(max_fds + 1, &fds, nullptr, nullptr, nullptr);
         if (err < 0 && errno != EINTR) {
             perror("select");
-            return -1;
+            return;
         }
     } while (err <= 0);
 
@@ -113,10 +113,76 @@ int socket::accept() const
         if (!FD_ISSET(m->sockets[i], &fds))
             continue;
 
-        return ::accept(m->sockets[i], (struct sockaddr *)&client_addr, &addr_len);
+        int fd = ::accept(m->sockets[i], (struct sockaddr *)&client_addr, &addr_len);
+        f(socket(fd));
+    }
+}
+
+struct socket_private
+{
+    int fd = -1;
+};
+
+socket::socket(int fd)
+    : m(new socket_private{fd})
+{
+}
+
+socket::socket(const socket &&other)
+    : socket(-1)
+{
+    m->fd = other.m->fd;
+    other.m->fd = -1;
+}
+
+socket::~socket()
+{
+    close();
+    delete m;
+}
+
+int socket::fd() const
+{
+    return m->fd;
+}
+
+void socket::close()
+{
+    ::close(m->fd);
+    m->fd = -1;
+}
+std::string socket::read_line() const
+{
+    struct timeval tv;
+    fd_set fds;
+    std::string r;
+    char c = '\0';
+    while (c != '\n') {
+        tv.tv_sec = 5;
+        tv.tv_usec = 0;
+        FD_ZERO(&fds);
+        FD_SET(m->fd, &fds);
+        int rc = select(m->fd + 1, &fds, NULL, NULL, &tv);
+        if (rc <= 0) {
+            if (rc == 0 || errno == EINTR)
+                continue;
+            break;
+        }
+
+        int bytes = ::read(m->fd, &c, 1);
+        if (bytes < 0)
+            break;
+        r += c;
     }
 
-    return -1;
+    return r;
+}
+
+bool socket::write(const std::string &str)
+{
+    if (::write(m->fd, str.data(), str.size()) < 0)
+        return false;
+    return true;
 }
 
 } // Capture

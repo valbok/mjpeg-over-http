@@ -5,23 +5,47 @@
 #ifndef CAPTURE_SOCKET_H
 #define CAPTURE_SOCKET_H
 
+#include <string>
+#include <functional>
+
 namespace Capture {
+
+class socket;
+class socket_listener_private;
+class socket_listener
+{
+public:
+    socket_listener();
+    ~socket_listener();
+    bool listen(const char *host, int port);
+    void close();
+    void accept(std::function<void(socket &&)> f) const;
+
+private:
+    socket_listener(const socket_listener &other) = delete;
+    socket_listener &operator=(const socket_listener &other) = delete;
+
+    socket_listener_private *m = nullptr;
+};
 
 class socket_private;
 class socket
 {
 public:
-    socket();
+    socket(int fd);
+    socket(const socket &&other);
     ~socket();
-    bool listen(const char *host, int port);
-    void stop();
-    int accept() const;
+
+    int fd() const;
+    void close();
+    std::string read_line() const;
+    bool write(const std::string &str);
 
 private:
     socket(const socket &other) = delete;
     socket &operator=(const socket &other) = delete;
 
-    socket_private *m = nullptr;
+	socket_private *m = nullptr;
 };
 
 } // Capture
