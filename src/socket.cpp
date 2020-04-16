@@ -1,0 +1,122 @@
+/**
+ * Copyright (C) 2020, Val Doroshchuk <valbok@gmail.com>
+ */
+
+#include "Capture/socket.h"
+
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <sys/select.h>
+#include <arpa/inet.h>
+#include <sys/stat.h>
+#include <netdb.h>
+#include <errno.h>
+#include <vector>
+
+namespace Capture {
+
+struct socket_private
+{
+    std::vector<int> sockets;
+};
+
+socket::socket()
+    : m(new socket_private)
+{
+}
+
+socket::~socket()
+{
+    stop();
+    delete m;
+}
+
+bool socket::listen(const char *host, int port)
+{
+    char name[NI_MAXHOST];
+    snprintf(name, sizeof(name), "%d", port);
+
+    struct addrinfo hints;
+    struct addrinfo *aip = nullptr;
+    bzero(&hints, sizeof(hints));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_flags = AI_PASSIVE;
+    hints.ai_socktype = SOCK_STREAM;    
+    int err = getaddrinfo(host, name, &hints, &aip);
+    if (err != 0) {
+        perror(gai_strerror(err));
+        return false;
+    }
+
+    for (auto ai = aip; ai; ai = ai->ai_next) {
+        int sd = ::socket(ai->ai_family, ai->ai_socktype, 0);
+        if (sd < 0)
+            continue;
+        
+        // Ignore "socket already in use" errors.
+        int on = 1;
+        if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
+            perror("setsockopt(SO_REUSEADDR) failed\n");
+
+        // IPv6 socket should listen to IPv6 only, otherwise we will get "socket already in use" 
+        on = 1;
+        if (ai->ai_family == AF_INET6 && setsockopt(sd, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&on , sizeof(on)) < 0)
+            perror("setsockopt(IPV6_V6ONLY) failed\n");
+
+        if (bind(sd, ai->ai_addr, ai->ai_addrlen) < 0) {
+            perror("bind");
+            continue;
+        }
+
+        if (::listen(sd, 10) < 0) {
+            perror("listen");
+            continue;
+        }
+
+        m->sockets.push_back(sd);
+    }
+
+    return !m->sockets.empty();
+}
+
+void socket::stop()
+{
+    for (size_t i = 0; i < m->sockets.size(); ++i)
+        close(m->sockets[i]);
+}
+
+int socket::accept() const
+{
+    fd_set fds;
+    int max_fds = 0;
+    int err = 0;
+    do {
+        FD_ZERO(&fds);
+        for (size_t i = 0; i < m->sockets.size(); ++i) {
+            FD_SET(m->sockets[i], &fds);
+            if (m->sockets[i] > max_fds)
+                max_fds = m->sockets[i];
+        }
+
+        err = select(max_fds + 1, &fds, nullptr, nullptr, nullptr);
+        if (err < 0 && errno != EINTR) {
+            perror("select");
+            return -1;
+        }
+    } while (err <= 0);
+
+    struct sockaddr_storage client_addr;
+    socklen_t addr_len = sizeof(struct sockaddr_storage);
+    for (int i = 0; i < max_fds + 1; ++i) {
+        if (!FD_ISSET(m->sockets[i], &fds))
+            continue;
+
+        return ::accept(m->sockets[i], (struct sockaddr *)&client_addr, &addr_len);
+    }
+
+    return -1;
+}
+
+} // Capture

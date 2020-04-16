@@ -2,7 +2,7 @@
  * Copyright (C) 2020, Val Doroshchuk <valbok@gmail.com>
  */
 
-#include "Capture_v4l2.h"
+#include "Capture/v4l2.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -281,7 +281,9 @@ static unsigned read_frame(int fd, struct v4l2_buffer &buf)
     return bytes;
 }
 
-struct Capture_v4l2_private
+namespace Capture {
+
+struct v4l2_private
 {
     bool active = false;
     std::string device;
@@ -291,44 +293,44 @@ struct Capture_v4l2_private
     unsigned buffers_count = 5;
 };
 
-Capture_v4l2::Capture_v4l2(const std::string &device)
-    : m(new Capture_v4l2_private)
+v4l2::v4l2(const std::string &device)
+    : m(new v4l2_private)
 {
     m->device = device;
 }
 
-Capture_v4l2::~Capture_v4l2()
+v4l2::~v4l2()
 {
     stop();
     delete m;
 }
 
-size_t Capture_v4l2::image_size() const
+size_t v4l2::image_size() const
 {
     return m->fmt.sizeimage;
 }
 
-size_t Capture_v4l2::native_width() const
+size_t v4l2::native_width() const
 {
     return m->fmt.width;
 }
 
-size_t Capture_v4l2::native_height() const
+size_t v4l2::native_height() const
 {
     return m->fmt.height;
 }
 
-size_t Capture_v4l2::bytes_perline() const
+size_t v4l2::bytes_perline() const
 {
     return m->fmt.bytesperline;
 }
 
-unsigned Capture_v4l2::pixel_format() const
+unsigned v4l2::pixel_format() const
 {
     return m->fmt.pixelformat;
 }
 
-bool Capture_v4l2::start(size_t width_hint, size_t height_hint, size_t pixel_format, size_t buffers_count)
+bool v4l2::start(size_t width_hint, size_t height_hint, size_t pixel_format, size_t buffers_count)
 {
     if (m->active)
         return false;
@@ -361,7 +363,7 @@ bool Capture_v4l2::start(size_t width_hint, size_t height_hint, size_t pixel_for
     return true;
 }
 
-void Capture_v4l2::stop()
+void v4l2::stop()
 {
     if (!m->active)
         return;
@@ -372,7 +374,7 @@ void Capture_v4l2::stop()
     m->active = false;
 }
 
-size_t Capture_v4l2::read_frame(void *&dst) const
+size_t v4l2::read_frame(void *&dst) const
 {
     if (!m->active)
         return 0;
@@ -413,3 +415,5 @@ size_t Capture_v4l2::read_frame(void *&dst) const
 
     return 0;
 }
+
+} // Capture

@@ -1,4 +1,11 @@
-# Capture v4l2
+# Capture/It
+
+# Build
+
+    $ meson build --prefix=/path/to/install
+    $ ninja install -C build/
+
+# Capture/v4l2
 
 A wrapper of [Video4Linux](https://en.wikipedia.org/wiki/Video4Linux) to simplify reading of video frames from a camera.
 
@@ -7,11 +14,6 @@ Currently supports only V4L2_BUF_TYPE_VIDEO_CAPTURE buffer type and V4L2_MEMORY_
 By default Motion-JPEG (V4L2_PIX_FMT_MJPEG) is used.
 
 Useful when there is no [GStreamer](https://gstreamer.freedesktop.org/) available but need to process video buffers.
-
-# Build
-
-    $ meson build --prefix=/path/to/install
-    $ ninja install -C build/
 
 # Example
 
@@ -26,7 +28,7 @@ Following will show you a list of supported fps per pixel format.
 
 So using Motion-JPEG and 1920x1080, the driver provides video frames in 30 fps. Let's try:
 
-    Capture_v4l2 cap("/dev/video0");
+    Capture::v4l2 cap("/dev/video0");
     if (!cap.start(1920, 1080))
       return;
 

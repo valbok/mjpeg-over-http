@@ -7,12 +7,14 @@
 
 #include <string>
 
-class Capture_v4l2_private;
-class Capture_v4l2
+namespace Capture {
+
+class v4l2_private;
+class v4l2
 {
 public:
-    Capture_v4l2(const std::string &device);
-    ~Capture_v4l2();
+    v4l2(const std::string &device);
+    ~v4l2();
 
     bool start(size_t width_hint = 0, size_t height_hint = 0, size_t pixel_format = 0, size_t buffers_count = 5);
     void stop();
@@ -28,10 +30,12 @@ public:
     unsigned pixel_format() const;
 
 private:
-    Capture_v4l2(const Capture_v4l2 &other) = delete;
-    Capture_v4l2 &operator=(const Capture_v4l2 &other) = delete;
+    v4l2(const v4l2 &other) = delete;
+    v4l2 &operator=(const v4l2 &other) = delete;
 
-    Capture_v4l2_private *m = nullptr;
+    v4l2_private *m = nullptr;
 };
+
+} // Capture
 
 #endif // CAPTURE_V4L2_H
