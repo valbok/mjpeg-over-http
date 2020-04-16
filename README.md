@@ -1,11 +1,11 @@
-# Capture/It
+# Capture
 
 # Build
 
     $ meson build --prefix=/path/to/install
     $ ninja install -C build/
 
-# Capture/v4l2
+# /v4l2
 
 A wrapper of [Video4Linux](https://en.wikipedia.org/wiki/Video4Linux) to simplify reading of video frames from a camera.
 

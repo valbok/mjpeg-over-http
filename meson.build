@@ -1,4 +1,4 @@
-project('Capture/it', 'cpp', version : '0.0.0', license : 'MIT')
+project('Capture/', 'cpp', version : '0.0.0', license : 'MIT')
 
 inc = include_directories('include')
 
