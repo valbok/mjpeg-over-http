@@ -164,13 +164,13 @@ std::string socket::read_line() const
         FD_SET(m->fd, &fds);
         int rc = select(m->fd + 1, &fds, NULL, NULL, &tv);
         if (rc <= 0) {
-            if (rc == 0 || errno == EINTR)
+            if (errno == EINTR)
                 continue;
             break;
         }
 
         int bytes = ::read(m->fd, &c, 1);
-        if (bytes < 0)
+        if (bytes <= 0)
             break;
         r += c;
     }
