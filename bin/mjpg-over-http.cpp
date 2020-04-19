@@ -23,6 +23,7 @@ static void help()
         " [-p | --port]..........: Port for this HTTP server\n" \
         " [-c | --credentials]...: Authorization: Basic \"username:password\"\n" \
         " [-d | --device]........: Camera device. By default \"/dev/video0'\"\n" \
+        " [-s | --size]..........: Size of the image\n" \
         " ---------------------------------------------------------------\n";
 }
 
@@ -63,7 +64,9 @@ static void install_signal_handler()
         exit(EXIT_FAILURE);
 }
 
-static bool parse_opts(int argc, char **argv, std::string &hostname, int &port, std::string &credentials, std::string &device)
+static bool parse_opts(int argc, char **argv,
+    std::string &hostname, int &port, std::string &credentials,
+    std::string &device, int &width, int &height)
 {
     while (1) {
         int option_index = 0, c = 0;
@@ -78,6 +81,8 @@ static bool parse_opts(int argc, char **argv, std::string &hostname, int &port, 
             {"credentials", required_argument, 0, 0},
             {"d", required_argument, 0, 0},
             {"device", required_argument, 0, 0},
+            {"s", required_argument, 0, 0},
+            {"size", required_argument, 0, 0},
             {0, 0, 0, 0}
         };
 
@@ -123,6 +128,17 @@ static bool parse_opts(int argc, char **argv, std::string &hostname, int &port, 
         case 8:
         case 9:
             device = optarg;
+        break;
+
+        /* s, size */
+        case 10:
+        case 11:
+            std::string size = optarg;
+            auto pos = size.find('x');
+            if (pos != std::string::npos) {
+                width = atoi(size.substr(0, pos).c_str());
+                height = atoi(size.substr(pos + 1).c_str());
+            }
         break;
         }
     }
@@ -183,14 +199,16 @@ int main(int argc, char **argv)
 
     int port = 8080;
     std::string credentials, hostname = "0.0.0.0", device = "/dev/video0";
+    int width = 640, height = 480;
 
-    if (!parse_opts(argc, argv, hostname, port, credentials, device))
+    if (!parse_opts(argc, argv, hostname, port, credentials, device, width, height))
         return 1;
 
-    std::cout << "Host................: " << hostname << std::endl;
-    std::cout << "Port................: " << port << std::endl;
-    std::cout << "Authorization: Basic: " << (credentials.empty() ? "disabled" : credentials) << std::endl;
-    std::cout << "Device..............: " << device << std::endl << std::endl;
+    Capture::v4l2 v4l2(device);
+    if (!v4l2.start(width, height)) {
+        std::cerr << "Could not start capturing." << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     Capture::socket_listener s;
     if (!s.listen(hostname.c_str(), port)) {
@@ -198,7 +216,12 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    std::cout << "Waiting for connections to " << hostname << ":" << port << "..." << std::endl;    
+    std::cout << "Host................: " << hostname << std::endl;
+    std::cout << "Port................: " << port << std::endl;
+    std::cout << "Authorization: Basic: " << (credentials.empty() ? "disabled" : credentials) << std::endl;
+    std::cout << "Device..............: " << device << std::endl;
+    std::cout << "Image size hint.....: " << width << "x" << height << std::endl;
+    std::cout << std::endl;
 
     std::thread worker(worker_thread);
     while (!stop) {
