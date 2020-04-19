@@ -183,7 +183,12 @@ std::string socket::read_line() const
 
 bool socket::write(const std::string &str)
 {
-    if (::write(m->fd, str.data(), str.size()) < 0)
+    return write((unsigned char *)str.data(), str.size());
+}
+
+bool socket::write(unsigned char *str, int size)
+{
+    if (::write(m->fd, str, size) < 0)
         return false;
     return true;
 }

@@ -43,15 +43,14 @@ static void help()
 #define HEADER_404 "HTTP/1.0 404 Not Found\r\n"
 
 static std::atomic<bool> stop(false);
-static std::mutex socket_mutex, stream_mutex;
-static std::condition_variable socket_cv, stream_cv;
-static std::queue<Capture::socket> socket_queue, stream_queue;
+static std::mutex socket_mutex;
+static std::condition_variable socket_cv;
+static std::queue<Capture::socket> socket_queue;
 
 static void signal_handler(int sig)
 {
     stop = true;
     socket_cv.notify_all();
-    stream_cv.notify_all();
 }
 
 static void install_signal_handler()
@@ -143,39 +142,38 @@ static void send_error(Capture::socket &socket, std::string header, const std::s
     socket.write(header);
 }
 
-void stream_thread()
-{
-    while (!stop) {
-        std::unique_lock<std::mutex> lock(stream_mutex);
-        stream_cv.wait(lock, [&]{ return stop || !stream_queue.empty(); });
-        if (stop)
-            break;
-
-    }
-}
-
 void worker_thread()
 {
+    int frame_size = 800*600*4;
+    unsigned char *frame = new unsigned char[frame_size] {0};
+
     while (!stop) {
         std::unique_lock<std::mutex> lock(socket_mutex);
         socket_cv.wait(lock, [&]{ return stop || !socket_queue.empty(); });
         if (stop)
             break;
+
         auto socket = std::move(socket_queue.front());
         socket_queue.pop();
         lock.unlock();
 
-        std::string req = socket.read_line();
-        if (req.find("GET /stream ") != std::string::npos) {
-            if (!socket.write(HEADER_STREAM))
-                continue;
+        std::string header = "Content-Type: image/jpeg\r\n";
+        header += "Content-Length: ";
+        header += std::to_string(frame_size) + "\r\n";
+        header += "\r\n";
 
-            stream_queue.push(std::move(socket));
-            stream_cv.notify_one();
+        if (!socket.write(header))
             continue;
-        }
 
-        send_error(socket, HEADER_404, "Service is not registered");
+        if (!socket.write(frame, frame_size))
+            continue;
+
+        if (!socket.write("\r\n--" BOUNDARY "\r\n"))
+            continue;
+
+        lock.lock();
+        socket_queue.push(std::move(socket));
+        lock.unlock();
     }
 }
 
@@ -195,7 +193,7 @@ int main(int argc, char **argv)
     std::cout << "Device..............: " << device << std::endl << std::endl;
 
     Capture::socket_listener s;
-    if (!s.listen("127.0.0.1", 8080)) {
+    if (!s.listen(hostname.c_str(), port)) {
         std::cerr << "Could not open connection." << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -205,10 +203,19 @@ int main(int argc, char **argv)
     std::thread worker(worker_thread);
     while (!stop) {
         s.accept([&](auto socket) {
-            socket_mutex.lock();
-            socket_queue.push(std::move(socket));
-            socket_mutex.unlock();
-            socket_cv.notify_one();
+            std::string req = socket.read_line();
+            if (req.find("GET /stream ") != std::string::npos) {
+                if (!socket.write(HEADER_STREAM))
+                    return;
+
+                socket_mutex.lock();
+                socket_queue.push(std::move(socket));
+                socket_mutex.unlock();
+                socket_cv.notify_one();
+                return;
+            }
+
+            send_error(socket, HEADER_404, "Service is not registered");
         });
     }
 
