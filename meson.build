@@ -4,6 +4,7 @@ inc = include_directories('include')
 
 subdir('include')
 subdir('src')
+subdir('bin')
 subdir('tests')
 
 pkg_mod = import('pkgconfig')
