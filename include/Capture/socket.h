@@ -32,7 +32,6 @@ class socket_private;
 class socket
 {
 public:
-    socket(int fd);
     socket(const socket &&other);
     ~socket();
 
@@ -42,10 +41,12 @@ public:
     bool write(const std::string &str);
 
 private:
+    socket(int fd);
     socket(const socket &other) = delete;
     socket &operator=(const socket &other) = delete;
 
 	socket_private *m = nullptr;
+    friend class socket_listener;
 };
 
 } // Capture

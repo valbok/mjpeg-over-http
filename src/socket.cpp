@@ -92,6 +92,7 @@ void socket_listener::accept(std::function<void(socket &&)> f) const
     fd_set fds;
     int max_fds = 0;
     int err = 0;
+
     do {
         FD_ZERO(&fds);
         for (size_t i = 0; i < m->sockets.size(); ++i) {
@@ -101,8 +102,9 @@ void socket_listener::accept(std::function<void(socket &&)> f) const
         }
 
         err = select(max_fds + 1, &fds, nullptr, nullptr, nullptr);
-        if (err < 0 && errno != EINTR) {
-            perror("select");
+        if (err < 0) {
+            if (errno != EINTR)
+                perror("select");
             return;
         }
     } while (err <= 0);
@@ -151,6 +153,7 @@ void socket::close()
     ::close(m->fd);
     m->fd = -1;
 }
+
 std::string socket::read_line() const
 {
     struct timeval tv;
