@@ -38,4 +38,4 @@ private:
 
 } // Capture
 
-#endif // CAPTURE_V4L2_H
+#endif

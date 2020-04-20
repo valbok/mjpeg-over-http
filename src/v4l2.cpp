@@ -4,17 +4,11 @@
 
 #include "Capture/v4l2.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include <getopt.h>             /* getopt_long() */
 #include <fcntl.h>              /* low-level i/o */
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/time.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <linux/videodev2.h>
@@ -372,6 +366,11 @@ void v4l2::stop()
     uninit_device(&m->buffers, m->buffers_count);
     close_device(m->fd);
     m->active = false;
+}
+
+bool v4l2::is_active() const
+{
+    return m->active;
 }
 
 size_t v4l2::read_frame(void *&dst) const

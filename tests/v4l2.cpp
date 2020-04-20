@@ -2,13 +2,14 @@
  * Copyright (C) 2020, Val Doroshchuk <valbok@gmail.com>
  */
 
-#include "Capture/v4l2.h"
+#include <Capture/v4l2.h>
+#include <iostream>
 
 int main(int argc, char **argv)
 {
     Capture::v4l2 cap("/dev/video0");
     if (!cap.start(1920, 1080)) {
-        fprintf(stderr, "Could not start capturing.\n");
+        std::cerr << "Could not start capturing." << std::endl;
         return 1;
     }
 
@@ -18,7 +19,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < frame_count; ++i) {
         size_t len = cap.read_frame(buf);
         if (!len) {
-            fprintf(stderr, "Could not read frame.\n");
+            std::cerr << "Could not read frame." << std::endl;
             continue;
         }
 
@@ -26,7 +27,6 @@ int main(int argc, char **argv)
         fprintf(stdout, "Writing %s\n", filename);
         FILE *fp = fopen(filename, "wb");
         fwrite(buf, len, 1, fp);
-        fflush(fp);
         fclose(fp);
     }
 
