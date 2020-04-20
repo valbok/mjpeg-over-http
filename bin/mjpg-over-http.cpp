@@ -3,7 +3,9 @@
  */
 
 #include <Capture/socket.h>
+#include <Capture/socket_thread.h>
 #include <Capture/v4l2.h>
+#include <Capture/v4l2_cache.h>
 
 #include <getopt.h>
 #include <signal.h>
@@ -43,15 +45,11 @@ static void help()
 
 #define HEADER_404 "HTTP/1.0 404 Not Found\r\n"
 
-static std::atomic<bool> stop(false);
-static std::mutex socket_mutex;
-static std::condition_variable socket_cv;
-static std::queue<Capture::socket> socket_queue;
+static bool stop = false;
 
 static void signal_handler(int sig)
 {
     stop = true;
-    socket_cv.notify_all();
 }
 
 static void install_signal_handler()
@@ -158,41 +156,6 @@ static void send_error(Capture::socket &socket, std::string header, const std::s
     socket.write(header);
 }
 
-void worker_thread()
-{
-    int frame_size = 800*600*4;
-    unsigned char *frame = new unsigned char[frame_size] {0};
-
-    while (!stop) {
-        std::unique_lock<std::mutex> lock(socket_mutex);
-        socket_cv.wait(lock, [&]{ return stop || !socket_queue.empty(); });
-        if (stop)
-            break;
-
-        auto socket = std::move(socket_queue.front());
-        socket_queue.pop();
-        lock.unlock();
-
-        std::string header = "Content-Type: image/jpeg\r\n";
-        header += "Content-Length: ";
-        header += std::to_string(frame_size) + "\r\n";
-        header += "\r\n";
-
-        if (!socket.write(header))
-            continue;
-
-        if (!socket.write(frame, frame_size))
-            continue;
-
-        if (!socket.write("\r\n--" BOUNDARY "\r\n"))
-            continue;
-
-        lock.lock();
-        socket_queue.push(std::move(socket));
-        lock.unlock();
-    }
-}
-
 int main(int argc, char **argv)
 {
     install_signal_handler();
@@ -210,6 +173,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    Capture::v4l2_cache v4l2_cache(v4l2);
+
     Capture::socket_listener s;
     if (!s.listen(hostname.c_str(), port)) {
         std::cerr << "Could not open connection." << std::endl;
@@ -223,7 +188,30 @@ int main(int argc, char **argv)
     std::cout << "Image size hint.....: " << width << "x" << height << std::endl;
     std::cout << std::endl;
 
-    std::thread worker(worker_thread);
+    Capture::socket_thread worker_thread;
+    worker_thread.start([&](auto socket) {
+        void *frame = nullptr;
+        size_t frame_size = v4l2_cache.read_frame(frame, 0);
+        if (!frame_size)
+            return;
+
+        std::string header = "Content-Type: image/jpeg\r\n";
+        header += "Content-Length: ";
+        header += std::to_string(frame_size) + "\r\n";
+        header += "\r\n";
+
+        if (!socket.write(header))
+            return;
+
+        if (!socket.write(frame, frame_size))
+            return;
+
+        if (!socket.write("\r\n--" BOUNDARY "\r\n"))
+            return;
+
+        worker_thread.push(std::move(socket));
+    });
+
     while (!stop) {
         s.accept([&](auto socket) {
             std::string req = socket.read_line();
@@ -231,10 +219,7 @@ int main(int argc, char **argv)
                 if (!socket.write(HEADER_STREAM))
                     return;
 
-                socket_mutex.lock();
-                socket_queue.push(std::move(socket));
-                socket_mutex.unlock();
-                socket_cv.notify_one();
+                worker_thread.push(std::move(socket));
                 return;
             }
 
@@ -242,6 +227,5 @@ int main(int argc, char **argv)
         });
     }
 
-    worker.join();
     return 0;
 }

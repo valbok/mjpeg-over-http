@@ -19,7 +19,7 @@ public:
     ~socket_listener();
     bool listen(const char *host, int port);
     void close();
-    void accept(std::function<void(socket &&)> f) const;
+    void accept(const std::function<void(socket &&)> &f) const;
 
 private:
     socket_listener(const socket_listener &other) = delete;
@@ -39,7 +39,7 @@ public:
     void close();
     std::string read_line() const;
     bool write(const std::string &str);
-    bool write(unsigned char *str, int size);
+    bool write(void *str, size_t size);
 
 private:
     socket(int fd);

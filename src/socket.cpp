@@ -87,7 +87,7 @@ void socket_listener::close()
         ::close(m->sockets[i]);
 }
 
-void socket_listener::accept(std::function<void(socket &&)> f) const
+void socket_listener::accept(const std::function<void(socket &&)> &f) const
 {
     fd_set fds;
     int max_fds = 0;
@@ -126,7 +126,7 @@ struct socket_private
 };
 
 socket::socket(int fd)
-    : m(new socket_private{fd})
+    : m(new socket_private{ fd })
 {
 }
 
@@ -161,7 +161,7 @@ std::string socket::read_line() const
     std::string r;
     char c = '\0';
     while (c != '\n') {
-        tv.tv_sec = 5;
+        tv.tv_sec = 1;
         tv.tv_usec = 0;
         FD_ZERO(&fds);
         FD_SET(m->fd, &fds);
@@ -183,10 +183,10 @@ std::string socket::read_line() const
 
 bool socket::write(const std::string &str)
 {
-    return write((unsigned char *)str.data(), str.size());
+    return write((void *)str.data(), str.size());
 }
 
-bool socket::write(unsigned char *str, int size)
+bool socket::write(void *str, size_t size)
 {
     if (::write(m->fd, str, size) < 0)
         return false;
