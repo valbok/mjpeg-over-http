@@ -25,7 +25,7 @@ static void help()
         " [-p | --port]..........: Port for this HTTP server\n" \
         " [-c | --credentials]...: Authorization: Basic \"username:password\"\n" \
         " [-d | --device]........: Camera device. By default \"/dev/video0'\"\n" \
-        " [-s | --size]..........: Size of the image\n" \
+        " [-s | --size]..........: Size of the image. By default 640x480\n" \
         " ---------------------------------------------------------------\n";
 }
 
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
     while (!stop) {
         s.accept([&](auto socket) {
             std::string req = socket.read_line();
-            if (req.find("GET /stream ") != std::string::npos) {
+            if (req.find(" /stream ") != std::string::npos) {
                 if (!socket.write(HEADER_STREAM))
                     return;
 
