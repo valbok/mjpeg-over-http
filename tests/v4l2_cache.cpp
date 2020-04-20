@@ -12,16 +12,12 @@ void run(C &c, int frame_count)
 {
     auto begin = std::chrono::steady_clock::now();
     for (int i = 0; i < frame_count; ++i) {
-        //auto fbegin = std::chrono::steady_clock::now();    
         void *buf = nullptr;
         size_t len = c.read_frame(buf);
         if (!len) {
             std::cerr << "Could not read frame." << std::endl;
             continue;
         }
-
-        //auto fend = std::chrono::steady_clock::now();
-        //std::cout << "[" << i << "]:" << std::chrono::duration_cast<std::chrono::milliseconds>(fend - fbegin).count() << " ms" << std::endl;
     }
 
     auto end = std::chrono::steady_clock::now();
