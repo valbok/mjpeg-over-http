@@ -100,7 +100,7 @@ void socket_thread_private::run()
         auto b = std::move(batch);
         lock.unlock();
 
-        callback(batch);
+        callback(b);
     }
 }
 
