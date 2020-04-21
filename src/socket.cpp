@@ -33,7 +33,7 @@ socket_listener::~socket_listener()
     delete m;
 }
 
-bool socket_listener::listen(const char *host, int port)
+bool socket_listener::listen(const std::string &host, int port)
 {
     char name[NI_MAXHOST];
     snprintf(name, sizeof(name), "%d", port);
@@ -44,7 +44,7 @@ bool socket_listener::listen(const char *host, int port)
     hints.ai_family = PF_UNSPEC;
     hints.ai_flags = AI_PASSIVE;
     hints.ai_socktype = SOCK_STREAM;    
-    int err = getaddrinfo(host, name, &hints, &aip);
+    int err = getaddrinfo(host.c_str(), name, &hints, &aip);
     if (err != 0) {
         perror(gai_strerror(err));
         return false;

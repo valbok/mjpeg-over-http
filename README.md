@@ -1,11 +1,22 @@
-# Capture
+# M-JPG over HTTP
 
-# Build
+HTTP streaming creates packets of a sequence of JPEG images that can be received by clients.
+Similar idea to [mjpg-streamer](https://github.com/jacksonliam/mjpg-streamer), but a bit simpler.
 
-    $ meson build --prefix=/path/to/install
-    $ ninja install -C build/
+    $ ./bin/mjpg-over-http
+    Host................: 0.0.0.0
+    Port................: 8080
+    Authorization: Basic: disabled
+    Device..............: /dev/video0
+    Image size..........: 640x480
 
-# /v4l2
+Now you can access the video stream by openning http://127.0.0.1:8080/stream in a browser, or inserting html tag <img src="http://127.0.0.1:8080/stream" /> to your webpage.
+
+Some clients such as QuickTime or VLC also can be used to view the stream.
+
+The solution consists of several separate parts:
+
+# Capture/v4l2
 
 A wrapper of [Video4Linux](https://en.wikipedia.org/wiki/Video4Linux) to simplify reading of video frames from a camera.
 
@@ -32,12 +43,31 @@ So using Motion-JPEG and 1920x1080, the driver provides video frames in 30 fps. 
     if (!cap.start(1920, 1080))
       return;
 
-    void *buf = nullptr;
-    size_t len = cap.read_frame(buf);
-    if (len) {
+    auto frame = cap.read_frame(buf);
+    if (frame) {
       FILE *fp = fopen("frame.jpg", "wb");
-      fwrite(buf, len, 1, fp);
-      fflush(fp);
+      fwrite(frame.data(), frame.size(), 1, fp);
       fclose(fp);
     }
 
+# Capture/socket
+
+List of socket based handlers.
+
+    Capture::socket_listener s;
+    // Opens port for connections
+    s.listen(hostname, port));
+    // A thread to handle connections
+    Capture::socket_thread worker_thread;
+    worker_thread.start([&](auto &socket) { socket.write(response); return false; }
+    while (!stop) {
+      // Waits for new connection and pushes it to worker thread
+      s.accept([&](auto socket) {
+        worker_thread.push(std::move(socket));
+      });
+    }
+
+# Build
+
+    $ meson build --prefix=/path/to/install
+    $ ninja install -C build/

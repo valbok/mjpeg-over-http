@@ -17,7 +17,7 @@ class socket_listener
 public:
     socket_listener();
     ~socket_listener();
-    bool listen(const char *host, int port);
+    bool listen(const std::string &host, int port);
     void close();
     void accept(const std::function<void(socket &&)> &f) const;
 
