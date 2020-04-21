@@ -11,11 +11,8 @@
 #include <signal.h>
 
 #include <iostream>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <queue>
-#include <atomic>
+#include <chrono>
+#include <vector>
 
 static void help()
 {
@@ -43,6 +40,7 @@ static void help()
     "\r\n" \
     "--" BOUNDARY "\r\n"
 
+#define HEADER_OK "HTTP/1.1 200 OK\r\n"
 #define HEADER_404 "HTTP/1.0 404 Not Found\r\n"
 
 static bool stop = false;
@@ -144,7 +142,7 @@ static bool parse_opts(int argc, char **argv,
     return true;
 }
 
-static void send_error(Capture::socket &socket, std::string header, const std::string &mess)
+static void send(Capture::socket &socket, std::string header, const std::string &mess)
 {
     header += "Content-type: text/plain\r\n";
     header += "Content-length: ";
@@ -173,8 +171,6 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    Capture::v4l2_cache v4l2_cache(v4l2);
-
     Capture::socket_listener s;
     if (!s.listen(hostname.c_str(), port)) {
         std::cerr << "Could not open connection." << std::endl;
@@ -185,31 +181,42 @@ int main(int argc, char **argv)
     std::cout << "Port................: " << port << std::endl;
     std::cout << "Authorization: Basic: " << (credentials.empty() ? "disabled" : credentials) << std::endl;
     std::cout << "Device..............: " << device << std::endl;
-    std::cout << "Image size hint.....: " << width << "x" << height << std::endl;
+    std::cout << "Image size..........: " << v4l2.native_width() << "x" << v4l2.native_height() << std::endl;
     std::cout << std::endl;
 
+    Capture::v4l2_cache v4l2_cache(v4l2);
+    if (!v4l2_cache.start()) {
+        std::cerr << "Could not start camera thread";
+        exit(EXIT_FAILURE);
+    }
+
     Capture::socket_thread worker_thread;
-    worker_thread.start([&](auto socket) {
-        void *frame = nullptr;
-        size_t frame_size = v4l2_cache.read_frame(frame, 0);
-        if (!frame_size)
-            return;
+    worker_thread.start([&](auto &socket) {
+        static int i = 0;
+        if ((i % (worker_thread.size() + 1)) == 0)
+            i = 0;
+
+        auto frame = v4l2_cache.wait(i++ == 0);
+        if (!frame)
+            return false;
 
         std::string header = "Content-Type: image/jpeg\r\n";
         header += "Content-Length: ";
-        header += std::to_string(frame_size) + "\r\n";
+        header += std::to_string(frame.size()) + "\r\n";
+        header += "X-Timestamp: ";
+        header += std::to_string(frame.sec()) + "." + std::to_string(frame.usec()) + "\r\n";
         header += "\r\n";
 
         if (!socket.write(header))
-            return;
+            return false;
 
-        if (!socket.write(frame, frame_size))
-            return;
+        if (!socket.write(frame.data(), frame.size()))
+            return false;
 
         if (!socket.write("\r\n--" BOUNDARY "\r\n"))
-            return;
+            return false;
 
-        worker_thread.push(std::move(socket));
+        return true;
     });
 
     while (!stop) {
@@ -222,10 +229,15 @@ int main(int argc, char **argv)
                 worker_thread.push(std::move(socket));
                 return;
             }
+            if (req.find(" /info ") != std::string::npos) {
+                send(socket, HEADER_OK, "Capture/mjpg-over-http");
+                return;
+            }
 
-            send_error(socket, HEADER_404, "Service is not registered");
+            send(socket, HEADER_404, "Service is not registered");
         });
     }
-
+    
+    std::cout <<"exiting..." << std::endl;
     return 0;
 }
