@@ -16,7 +16,7 @@ Some clients such as QuickTime or VLC also can be used to view the stream.
 
 The solution consists of several separate parts:
 
-# Capture/v4l2
+# Capture::v4l2
 
 A wrapper of [Video4Linux](https://en.wikipedia.org/wiki/Video4Linux) to simplify reading of video frames from a camera.
 
@@ -25,8 +25,6 @@ Currently supports only V4L2_BUF_TYPE_VIDEO_CAPTURE buffer type and V4L2_MEMORY_
 By default Motion-JPEG (V4L2_PIX_FMT_MJPEG) is used.
 
 Useful when there is no [GStreamer](https://gstreamer.freedesktop.org/) available but need to process video buffers.
-
-# Example
 
 Following will show you a list of supported fps per pixel format.
 
@@ -50,7 +48,7 @@ So using Motion-JPEG and 1920x1080, the driver provides video frames in 30 fps. 
       fclose(fp);
     }
 
-# Capture/socket
+# Capture::socket
 
 List of socket based handlers.
 
