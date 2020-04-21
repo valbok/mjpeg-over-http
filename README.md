@@ -10,7 +10,7 @@ Similar idea to [mjpg-streamer](https://github.com/jacksonliam/mjpg-streamer), b
     Device..............: /dev/video0
     Image size..........: 640x480
 
-Now you can access the video stream by openning http://127.0.0.1:8080/stream in a browser, or inserting html tag &lt;img src="http://127.0.0.1:8080/stream" /&rt; to your webpage.
+Now you can access the video stream by openning http://127.0.0.1:8080/stream in a browser, or inserting html tag &lt;img src="http://127.0.0.1:8080/stream" /&gt; to your webpage.
 
 Some clients such as QuickTime or VLC also can be used to view the stream.
 
