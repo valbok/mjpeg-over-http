@@ -150,7 +150,9 @@ int socket::fd() const
 
 void socket::close()
 {
-    ::close(m->fd);
+    if (m->fd > 0)
+        ::close(m->fd);
+
     m->fd = -1;
 }
 
@@ -161,7 +163,7 @@ std::string socket::read_line() const
     std::string r;
     char c = '\0';
     while (c != '\n') {
-        tv.tv_sec = 1;
+        tv.tv_sec = 5;
         tv.tv_usec = 0;
         FD_ZERO(&fds);
         FD_SET(m->fd, &fds);
@@ -186,7 +188,7 @@ bool socket::write(const std::string &str)
     return write((void *)str.data(), str.size());
 }
 
-bool socket::write(void *str, size_t size)
+bool socket::write(const void *str, size_t size)
 {
     if (::write(m->fd, str, size) < 0)
         return false;

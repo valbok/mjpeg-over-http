@@ -8,16 +8,47 @@
 #include <chrono>
 #include <memory>
 #include <algorithm>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
+#include <atomic>
+
+#include <iostream>
 
 namespace Capture {
 
 struct v4l2_cache_private
 {
     const Capture::v4l2 &capture;
-    std::unique_ptr<unsigned char[]> data;
-    size_t size = 0;
+    v4l2_frame frame;
     std::chrono::steady_clock::time_point time;
+    std::mutex mutex;
+    std::condition_variable cv;
+    std::thread thread;
+    std::atomic_bool stop{ true };
+
+    ~v4l2_cache_private();
+    void wait();
+    void terminate();
 };
+
+v4l2_cache_private::~v4l2_cache_private()
+{
+    wait();
+}
+
+void v4l2_cache_private::wait()
+{
+    terminate();
+    if (thread.joinable())
+        thread.join();
+}
+
+void v4l2_cache_private::terminate()
+{
+    stop = true;
+    cv.notify_all();
+}
 
 v4l2_cache::v4l2_cache(const Capture::v4l2 &capture)
     : m(new v4l2_cache_private{ capture })
@@ -29,29 +60,45 @@ v4l2_cache::~v4l2_cache()
     delete m;
 }
 
-size_t v4l2_cache::read_frame(void *&dst, unsigned timeout) const
+bool v4l2_cache::start()
 {
-    if (!m->capture.is_active())
-        return 0;
+    if (!m->capture.is_active() || !m->stop)
+        return false;
 
-    auto now = std::chrono::steady_clock::now();
-    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - m->time).count();
-    if (diff > timeout)
-        m->data.reset();
+    m->stop = false;
+    m->thread = std::thread([&] {
+        while (!m->stop) {
+            std::unique_lock<std::mutex> lock(m->mutex);
+            m->cv.wait(lock, [&] { return m->stop || !m->frame; });
+            if (m->stop)
+                break;
 
-    if (!m->data) {
-        void *data = nullptr;
-        m->size = m->capture.read_frame(data);
-        if (m->size) {
-            m->data.reset(new unsigned char[m->size]);
-            unsigned char *d = (unsigned char *)data;
-            std::copy(d, d + m->size, m->data.get());
+            m->frame = m->capture.read_frame();
+            lock.unlock();
+            m->cv.notify_all();
         }
-        m->time = std::chrono::steady_clock::now();
-    }
+    });
     
-    dst = m->data.get();
-    return m->size;
+    return true;
+}
+
+void v4l2_cache::stop()
+{
+    m->terminate();
+}
+
+v4l2_frame v4l2_cache::wait(bool update) const
+{
+    std::unique_lock<std::mutex> lock(m->mutex);
+    m->cv.wait(lock, [&] { return m->stop || m->frame; });
+
+    auto f = m->frame;
+    if (update) {
+        m->frame = v4l2_frame();
+        m->cv.notify_one();
+    }
+
+    return f;
 }
 
 } // Capture

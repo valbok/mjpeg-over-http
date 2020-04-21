@@ -246,7 +246,7 @@ static void stop_capturing(int fd)
         print_errno("VIDIOC_STREAMOFF");
 }
 
-static unsigned read_frame(int fd, struct v4l2_buffer &buf)
+static unsigned read_frame(int fd, struct v4l2_buffer &buf, struct timeval &timestamp)
 {
     CLEAR(buf);
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -266,6 +266,7 @@ static unsigned read_frame(int fd, struct v4l2_buffer &buf)
     }
 
     unsigned bytes = buf.bytesused;
+    timestamp = buf.timestamp;
 
     if (xioctl(fd, VIDIOC_QBUF, &buf) == -1) {
         print_errno("VIDIOC_QBUF");
@@ -276,6 +277,111 @@ static unsigned read_frame(int fd, struct v4l2_buffer &buf)
 }
 
 namespace Capture {
+
+struct v4l2_frame_private
+{
+    unsigned char *data = nullptr;
+    size_t size = 0;
+    struct timeval timestamp;
+    bool detached = false;
+
+    ~v4l2_frame_private();
+    void release();
+    v4l2_frame_private &operator=(const v4l2_frame_private &other);
+    void detach();
+};
+
+v4l2_frame_private::~v4l2_frame_private()
+{
+    release();
+}
+
+void v4l2_frame_private::release()
+{
+    if (detached)
+        delete [] data;
+    data = nullptr;
+    detached = false;
+}
+
+v4l2_frame_private &v4l2_frame_private::operator=(const v4l2_frame_private &other)
+{
+    release();
+    data = other.data;
+    size = other.size;
+    timestamp = other.timestamp;
+
+    detach();
+    return *this;
+}
+
+void v4l2_frame_private::detach()
+{
+    if (!size)
+        return;
+
+    auto dst = new unsigned char[size];
+    auto d = (unsigned char *)data;
+    std::copy(d, d + size, dst);
+    data = dst;
+    detached = true;
+}
+
+v4l2_frame::v4l2_frame()
+    : m(new v4l2_frame_private)
+{
+}
+
+v4l2_frame::~v4l2_frame()
+{
+    delete m;
+}
+
+v4l2_frame::v4l2_frame(const v4l2_frame &&other)
+{
+    m = other.m;
+    other.m->size = 0;
+    other.m->data = nullptr;
+    other.m->detached = false;
+    CLEAR(other.m->timestamp);
+}
+
+v4l2_frame::v4l2_frame(const v4l2_frame &other)
+    : v4l2_frame()
+{
+    operator=(other);
+}
+
+v4l2_frame &v4l2_frame::operator=(const v4l2_frame &other)
+{
+    *m = *other.m;
+    return *this;
+}
+
+v4l2_frame::operator bool() const
+{
+    return m->size;
+}
+
+const void *v4l2_frame::data() const
+{
+    return m->data;
+}
+
+size_t v4l2_frame::size() const
+{
+    return m->size;
+}
+
+int v4l2_frame::sec() const
+{
+    return m->timestamp.tv_sec;
+}
+
+int v4l2_frame::usec() const
+{
+    return m->timestamp.tv_usec;
+}
 
 struct v4l2_private
 {
@@ -373,12 +479,10 @@ bool v4l2::is_active() const
     return m->active;
 }
 
-size_t v4l2::read_frame(void *&dst) const
+v4l2_frame v4l2::read_frame() const
 {
-    if (!m->active)
-        return 0;
-
-    for (;;) {
+    v4l2_frame frame;
+    while (m->active) {
         fd_set fds;
         struct timeval tv;
         int r;
@@ -403,16 +507,16 @@ size_t v4l2::read_frame(void *&dst) const
         }
 
         struct v4l2_buffer buf;
-        size_t len = ::read_frame(m->fd, buf);
-        if (len) {
-            dst = ((Buffer *)m->buffers)[buf.index].start;
-            return len;
+        frame.m->size = ::read_frame(m->fd, buf, frame.m->timestamp);
+        if (frame.m->size) {
+            frame.m->data = (unsigned char *)((Buffer *)m->buffers)[buf.index].start;
+            return frame;
         }
 
         /* EAGAIN - continue select loop. */
     }
 
-    return 0;
+    return frame;
 }
 
 } // Capture

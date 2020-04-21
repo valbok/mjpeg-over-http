@@ -10,8 +10,9 @@
 #include <condition_variable>
 #include <queue>
 #include <atomic>
-
+#include <chrono>
 #include <iostream>
+
 namespace Capture {
 
 struct socket_thread_private
@@ -21,54 +22,97 @@ struct socket_thread_private
     std::condition_variable cv;
     std::queue<socket> queue;
     std::atomic_bool stop{ false };
-    std::function<void(socket &&)> callback;
+    std::function<bool(socket &)> callback;
+    std::chrono::steady_clock::time_point time;
+
+    ~socket_thread_private();
+    void wait();
+    void terminate();
+    void push(socket &&s);
+    void run();
 };
+
+socket_thread_private::~socket_thread_private()
+{
+    wait();
+}
+
+void socket_thread_private::wait()
+{
+    terminate();
+    if (thread.joinable())
+        thread.join();
+}
+
+void socket_thread_private::terminate()
+{
+    stop = true;
+    cv.notify_one();
+}
+
+void socket_thread_private::push(socket &&s)
+{
+    mutex.lock();
+    queue.push(std::move(s));
+    mutex.unlock();
+    cv.notify_one();
+}
 
 socket_thread::socket_thread()
     : m(new socket_thread_private)
 {
 }
 
+socket_thread::socket_thread(socket_thread &&other)
+    : socket_thread()
+{
+    auto tmp = m;
+    m = other.m;
+    other.m = tmp;
+}
+
 socket_thread::~socket_thread()
 {
-    stop();
-    if (m->thread.joinable())
-        m->thread.join();
     delete m;
 }
 
 void socket_thread::push(socket &&s)
 {
-    m->mutex.lock();
-    m->queue.push(std::move(s));
-    m->mutex.unlock();
-    m->cv.notify_one();
+    m->push(std::move(s));
 }
 
-void socket_thread::start(const std::function<void(socket &&)> &f)
+void socket_thread::start(const std::function<bool(socket &)> &f)
 {
     m->stop = false;
     m->callback = f;
-    m->thread = std::thread([&] {        
-        while (!m->stop) {
-            std::unique_lock<std::mutex> lock(m->mutex);
-            m->cv.wait(lock, [&]{ return m->stop || !m->queue.empty(); });
-            if (m->stop)
-                break;
+    m->thread = std::thread(&socket_thread_private::run, m);
+}
 
-            auto socket = std::move(m->queue.front());
-            m->queue.pop();
-            lock.unlock();
+void socket_thread_private::run()
+{
+    while (!stop) {
+        std::unique_lock<std::mutex> lock(mutex);
+        cv.wait(lock, [&] { return stop || !queue.empty(); });
+        if (stop)
+            break;
 
-            m->callback(std::move(socket));
-        }
-    });
+        auto socket = std::move(queue.front());
+        queue.pop();
+        lock.unlock();
+
+        if (callback(socket))
+            push(std::move(socket));
+    }
 }
 
 void socket_thread::stop()
 {
-    m->stop = true;
-    m->cv.notify_one();
+    m->terminate();
+}
+
+size_t socket_thread::size() const
+{
+    return m->queue.size();
 }
 
 } // Capture

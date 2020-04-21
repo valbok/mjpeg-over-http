@@ -16,11 +16,13 @@ class socket_thread
 {
 public:
     socket_thread();
+    socket_thread(socket_thread &&other);
     ~socket_thread();
 
     void push(socket &&s);
-    void start(const std::function<void(Capture::socket &&)> &f);
+    void start(const std::function<bool(socket &)> &f);
     void stop();
+    size_t size() const;
 
 private:
     socket_thread(const socket_thread &other) = delete;

@@ -39,7 +39,7 @@ public:
     void close();
     std::string read_line() const;
     bool write(const std::string &str);
-    bool write(void *str, size_t size);
+    bool write(const void *str, size_t size);
 
 private:
     socket(int fd);

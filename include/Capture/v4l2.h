@@ -9,6 +9,28 @@
 
 namespace Capture {
 
+class v4l2_frame_private;
+class v4l2_frame
+{
+public:
+    v4l2_frame();
+    ~v4l2_frame();
+
+    v4l2_frame(const v4l2_frame &&other);
+    v4l2_frame(const v4l2_frame &other);
+    v4l2_frame &operator=(const v4l2_frame &other);
+    operator bool() const;
+
+    const void *data() const;
+    size_t size() const;
+    int sec() const;
+    int usec() const;
+
+private:
+    v4l2_frame_private *m = nullptr;
+    friend class v4l2;
+};
+
 class v4l2_private;
 class v4l2
 {
@@ -20,7 +42,7 @@ public:
     void stop();
     bool is_active() const;
 
-    size_t read_frame(void *&dst) const;
+    v4l2_frame read_frame() const;
 
     std::string device() const;
     size_t image_size() const;
