@@ -20,9 +20,10 @@ struct socket_thread_private
     std::thread thread;
     std::mutex mutex;
     std::condition_variable cv;
-    std::queue<socket> queue;
+    //std::queue<socket> queue;
+    std::vector<socket> batch;
     std::atomic_bool stop{ false };
-    std::function<bool(socket &)> callback;
+    std::function<void(const std::vector<socket> &)> callback;
     std::chrono::steady_clock::time_point time;
 
     ~socket_thread_private();
@@ -53,7 +54,7 @@ void socket_thread_private::terminate()
 void socket_thread_private::push(socket &&s)
 {
     mutex.lock();
-    queue.push(std::move(s));
+    batch.push_back(std::move(s));
     mutex.unlock();
     cv.notify_one();
 }
@@ -81,7 +82,7 @@ void socket_thread::push(socket &&s)
     m->push(std::move(s));
 }
 
-void socket_thread::start(const std::function<bool(socket &)> &f)
+void socket_thread::start(const std::function<void(const std::vector<socket> &)> &f)
 {
     m->stop = false;
     m->callback = f;
@@ -92,27 +93,20 @@ void socket_thread_private::run()
 {
     while (!stop) {
         std::unique_lock<std::mutex> lock(mutex);
-        cv.wait(lock, [&] { return stop || !queue.empty(); });
+        cv.wait(lock, [&] { return stop || !batch.empty(); });
         if (stop)
             break;
 
-        auto socket = std::move(queue.front());
-        queue.pop();
+        auto b = std::move(batch);
         lock.unlock();
 
-        if (callback(socket))
-            push(std::move(socket));
+        callback(batch);
     }
 }
 
 void socket_thread::stop()
 {
     m->terminate();
-}
-
-size_t socket_thread::size() const
-{
-    return m->queue.size();
 }
 
 } // Capture

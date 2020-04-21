@@ -107,7 +107,7 @@ static bool parse_opts(int argc, char **argv,
         case 3:
             port = atoi(optarg);
         break;
-       
+
         /* Interface name */
         case 4:
         case 5:
@@ -191,14 +191,10 @@ int main(int argc, char **argv)
     }
 
     Capture::socket_thread worker_thread;
-    worker_thread.start([&](auto &socket) {
-        static int i = 0;
-        if ((i % (worker_thread.size() + 1)) == 0)
-            i = 0;
-
-        auto frame = v4l2_cache.wait(i++ == 0);
+    worker_thread.start([&](auto &batch) {
+        auto frame = v4l2.read_frame();
         if (!frame)
-            return false;
+            return;
 
         std::string header = "Content-Type: image/jpeg\r\n";
         header += "Content-Length: ";
@@ -207,16 +203,19 @@ int main(int argc, char **argv)
         header += std::to_string(frame.sec()) + "." + std::to_string(frame.usec()) + "\r\n";
         header += "\r\n";
 
-        if (!socket.write(header))
-            return false;
+        for (size_t i = 0; i < batch.size(); ++i) {
+            auto socket = std::move(batch[i]);
+            if (!socket.write(header))
+                continue;
 
-        if (!socket.write(frame.data(), frame.size()))
-            return false;
+            if (!socket.write(frame.data(), frame.size()))
+                continue;
 
-        if (!socket.write("\r\n--" BOUNDARY "\r\n"))
-            return false;
+            if (!socket.write("\r\n--" BOUNDARY "\r\n"))
+                continue;
 
-        return true;
+            worker_thread.push(std::move(socket));
+        }
     });
 
     while (!stop) {
@@ -237,7 +236,7 @@ int main(int argc, char **argv)
             send(socket, HEADER_404, "Service is not registered");
         });
     }
-    
+
     std::cout <<"exiting..." << std::endl;
     return 0;
 }

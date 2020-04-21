@@ -7,6 +7,7 @@
 
 #include <string>
 #include <functional>
+#include <vector>
 
 namespace Capture {
 
@@ -20,9 +21,8 @@ public:
     ~socket_thread();
 
     void push(socket &&s);
-    void start(const std::function<bool(socket &)> &f);
+    void start(const std::function<void(const std::vector<socket> &)> &f);
     void stop();
-    size_t size() const;
 
 private:
     socket_thread(const socket_thread &other) = delete;
