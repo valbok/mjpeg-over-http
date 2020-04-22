@@ -13,6 +13,8 @@
 #include <chrono>
 #include <vector>
 
+#include <linux/videodev2.h>
+
 static void help()
 {
     std::cerr <<
@@ -165,10 +167,13 @@ int main(int argc, char **argv)
         return 1;
 
     Capture::v4l2 v4l2(device);
-    if (!v4l2.start(width, height)) {
+    if (!v4l2.start(width, height, V4L2_PIX_FMT_MJPEG)) {
         std::cerr << "Could not start capturing." << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    if (v4l2.pixel_format() != V4L2_PIX_FMT_MJPEG)
+        std::cout << "Motion-JPEG is not supported by the device, video frames will be converted to jpeg." << std::endl;
 
     Capture::socket_listener s;
     if (!s.listen(hostname.c_str(), port)) {

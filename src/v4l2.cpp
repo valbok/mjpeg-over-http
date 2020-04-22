@@ -3,6 +3,7 @@
  */
 
 #include "Capture/v4l2.h"
+#include "jpeg_utils.h"
 
 #include <string.h>
 #include <fcntl.h>              /* low-level i/o */
@@ -246,34 +247,36 @@ static void stop_capturing(int fd)
         print_errno("VIDIOC_STREAMOFF");
 }
 
-static unsigned read_frame(int fd, struct v4l2_buffer &buf, struct timeval &timestamp)
+static struct v4l2_buffer read_frame(int fd)
 {
+    struct v4l2_buffer buf;
     CLEAR(buf);
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
 
     if (xioctl(fd, VIDIOC_DQBUF, &buf) == -1) {
+        CLEAR(buf);
         switch (errno) {
         case EAGAIN:
-            return 0;
+            return buf;
         case EIO:
             /* Could ignore EIO, see spec. */
             /* fall through */
         default:
             print_errno("VIDIOC_DQBUF");
-            return 0;
+            return buf;
         }
     }
 
-    unsigned bytes = buf.bytesused;
-    timestamp = buf.timestamp;
+    auto r = buf;
 
     if (xioctl(fd, VIDIOC_QBUF, &buf) == -1) {
+        CLEAR(buf);
         print_errno("VIDIOC_QBUF");
-        return 0;
+        return buf;
     }
 
-    return bytes;
+    return r;
 }
 
 namespace Capture {
@@ -383,6 +386,7 @@ struct v4l2_private
     bool active = false;
     std::string device;
     int fd = -1;
+    unsigned requested_pixel_format = 0;
     v4l2_pix_format fmt;
     void *buffers = nullptr;
     unsigned buffers_count = 5;
@@ -440,6 +444,7 @@ bool v4l2::start(size_t width_hint, size_t height_hint, unsigned pixel_format, s
         return false;
     }
 
+    m->requested_pixel_format = pixel_format;
     m->fmt = fmt.fmt.pix;
     m->buffers_count = buffers_count;
     m->buffers = init_mmap(m->fd, m->device, m->buffers_count);
@@ -501,17 +506,34 @@ v4l2_frame v4l2::read_frame() const
             break;
         }
 
-        struct v4l2_buffer buf;
-        frame.m->size = ::read_frame(m->fd, buf, frame.m->timestamp);
-        if (frame.m->size) {
-            frame.m->data = (unsigned char *)((Buffer *)m->buffers)[buf.index].start;
+        auto buf = ::read_frame(m->fd);
+        if (buf.bytesused) {
+            auto data = (unsigned char *)((Buffer *)m->buffers)[buf.index].start;
+            frame.m->timestamp = buf.timestamp;
+            frame.m->size = buf.bytesused;
+            frame.m->data = data;
+
+            switch (pixel_format()) {
+            case V4L2_PIX_FMT_YUYV:
+            case V4L2_PIX_FMT_UYVY:
+            case V4L2_PIX_FMT_RGB565:
+                if (m->requested_pixel_format == V4L2_PIX_FMT_MJPEG) {
+                    unsigned char *output = nullptr;
+                    frame.m->size = jpeg_data(pixel_format(), data, native_width(), native_height(), output);
+                    frame.m->data = output;
+                    frame.m->detach();
+                    free(output);
+                }
+                break;
+            }
+
             return frame;
         }
 
-        /* EAGAIN - continue select loop. */
-
         if (errno == ENODEV)
             break;
+
+        /* EAGAIN - continue select loop. */
     }
 
     return frame;
