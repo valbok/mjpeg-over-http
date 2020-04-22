@@ -167,7 +167,7 @@ std::string socket::read_line() const
         tv.tv_usec = 0;
         FD_ZERO(&fds);
         FD_SET(m->fd, &fds);
-        int rc = select(m->fd + 1, &fds, NULL, NULL, &tv);
+        int rc = select(m->fd + 1, &fds, nullptr, nullptr, &tv);
         if (rc <= 0) {
             if (errno == EINTR)
                 continue;
