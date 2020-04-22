@@ -508,10 +508,9 @@ v4l2_frame v4l2::read_frame() const
 
         auto buf = ::read_frame(m->fd);
         if (buf.bytesused) {
-            auto data = (unsigned char *)((Buffer *)m->buffers)[buf.index].start;
             frame.m->timestamp = buf.timestamp;
             frame.m->size = buf.bytesused;
-            frame.m->data = data;
+            frame.m->data = (unsigned char *)((Buffer *)m->buffers)[buf.index].start;
 
             switch (pixel_format()) {
             case V4L2_PIX_FMT_YUYV:
@@ -519,7 +518,7 @@ v4l2_frame v4l2::read_frame() const
             case V4L2_PIX_FMT_RGB565:
                 if (m->requested_pixel_format == V4L2_PIX_FMT_MJPEG) {
                     unsigned char *output = nullptr;
-                    frame.m->size = jpeg_data(pixel_format(), data, native_width(), native_height(), output);
+                    frame.m->size = jpeg_data(pixel_format(), frame.m->data, native_width(), native_height(), output);
                     frame.m->data = output;
                     frame.m->detach();
                     free(output);
