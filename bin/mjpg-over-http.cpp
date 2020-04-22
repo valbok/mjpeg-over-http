@@ -9,6 +9,7 @@
 #include <getopt.h>
 #include <signal.h>
 
+#include <mutex>
 #include <iostream>
 #include <chrono>
 #include <vector>
@@ -28,7 +29,7 @@ static void help()
 }
 
 #define HEADER_DEFAULT "Connection: close\r\n" \
-    "Server: Capture/mjpg-over-http/0.0\r\n" \
+    "Server: MJPG-Over-HTTP\r\n" \
     "Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0\r\n" \
     "Pragma: no-cache\r\n" \
     "Expires: Mon, 3 Jan 2000 00:00:00 GMT\r\n"
@@ -40,6 +41,11 @@ static void help()
     "Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n" \
     "\r\n" \
     "--" BOUNDARY "\r\n"
+
+#define HEADER_SNAPSHOT "HTTP/1.0 200 OK\r\n" \
+    "Access-Control-Allow-Origin: *\r\n" \
+    HEADER_DEFAULT \
+    "Content-Type: image/jpeg\r\n"
 
 #define HEADER_OK "HTTP/1.1 200 OK\r\n"
 #define HEADER_404 "HTTP/1.0 404 Not Found\r\n"
@@ -155,6 +161,17 @@ static void send(Capture::socket &socket, std::string header, const std::string 
     socket.write(header);
 }
 
+static std::mutex frame_mutex;
+static Capture::v4l2_frame read_frame(Capture::v4l2 &v4l2)
+{
+    std::lock_guard<std::mutex> lock(frame_mutex);
+    auto frame = v4l2.read_frame();
+    if (frame && frame.pixel_format() != V4L2_PIX_FMT_MJPEG)
+        frame = frame.convert(V4L2_PIX_FMT_MJPEG);
+
+    return frame;
+}
+
 int main(int argc, char **argv)
 {
     install_signal_handler();
@@ -188,6 +205,37 @@ int main(int argc, char **argv)
     std::cout << "Image size..........: " << v4l2.native_width() << "x" << v4l2.native_height() << std::endl;
     std::cout << std::endl;
 
+    Capture::socket_thread snapshot_thread;
+    snapshot_thread.start([&](auto &batch) {
+        if (!v4l2.is_active()) {
+            batch.clear();
+            return;
+        }
+
+        auto frame = read_frame(v4l2);
+        if (!frame)
+            return;
+
+        std::string header = HEADER_SNAPSHOT;
+        header += "Content-Length: ";
+        header += std::to_string(frame.size()) + "\r\n";
+        header += "X-Timestamp: ";
+        header += std::to_string(frame.timestamp().tv_sec) + "." + std::to_string(frame.timestamp().tv_usec) + "\r\n";
+        header += "\r\n";
+
+        for (auto &socket : batch) {
+            if (!socket.write(header)) {
+                socket.close();
+                continue;
+            }
+
+            if (!socket.write(frame.data(), frame.size())) {
+                socket.close();
+                continue;
+            }
+        }
+    });
+
     Capture::socket_thread stream_thread;
     stream_thread.start([&](auto &batch) {
         if (!v4l2.is_active()) {
@@ -195,10 +243,7 @@ int main(int argc, char **argv)
             return;
         }
 
-        auto frame = v4l2.read_frame();
-        if (frame && frame.pixel_format() != V4L2_PIX_FMT_MJPEG)
-            frame = frame.convert(V4L2_PIX_FMT_MJPEG);
-
+        auto frame = read_frame(v4l2);
         if (!frame)
             return;
 
@@ -235,6 +280,10 @@ int main(int argc, char **argv)
                     return;
 
                 stream_thread.push(std::move(socket));
+                return;
+            }
+            if (req.find(" /snapshot ") != std::string::npos) {
+                snapshot_thread.push(std::move(socket));
                 return;
             }
             if (req.find(" /info ") != std::string::npos) {
