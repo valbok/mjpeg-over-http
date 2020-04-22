@@ -283,9 +283,12 @@ namespace Capture {
 
 struct v4l2_frame_private
 {
+    size_t width = 0;
+    size_t height = 0;
+    unsigned pixel_format = 0;
     unsigned char *data = nullptr;
     size_t size = 0;
-    struct timeval timestamp;
+    struct timeval timestamp = { 0, 0 };
     bool detached = false;
 
     ~v4l2_frame_private();
@@ -310,6 +313,9 @@ void v4l2_frame_private::release()
 v4l2_frame_private &v4l2_frame_private::operator=(const v4l2_frame_private &other)
 {
     release();
+    width = other.width;
+    height = other.height;
+    pixel_format = other.pixel_format;
     data = other.data;
     size = other.size;
     timestamp = other.timestamp;
@@ -343,6 +349,9 @@ v4l2_frame::~v4l2_frame()
 v4l2_frame::v4l2_frame(const v4l2_frame &&other)
 {
     m = other.m;
+    other.m->width = 0;
+    other.m->height = 0;
+    other.m->pixel_format = 0;
     other.m->size = 0;
     other.m->data = nullptr;
     other.m->detached = false;
@@ -366,6 +375,21 @@ v4l2_frame::operator bool() const
     return m->size;
 }
 
+size_t v4l2_frame::width() const
+{
+    return m->width;
+}
+
+size_t v4l2_frame::height() const
+{
+    return m->height;
+}
+
+unsigned v4l2_frame::pixel_format() const
+{
+    return m->pixel_format;
+}
+
 const void *v4l2_frame::data() const
 {
     return m->data;
@@ -379,6 +403,34 @@ size_t v4l2_frame::size() const
 struct timeval v4l2_frame::timestamp() const
 {
     return m->timestamp;
+}
+
+v4l2_frame v4l2_frame::convert(unsigned f) const
+{
+    v4l2_frame frame;
+    if (f != V4L2_PIX_FMT_MJPEG)
+        return frame;
+
+    switch (m->pixel_format) {
+    case V4L2_PIX_FMT_YUYV:
+    case V4L2_PIX_FMT_UYVY:
+    case V4L2_PIX_FMT_RGB565: {
+        unsigned char *output = nullptr;
+        frame.m->width = m->width;
+        frame.m->height = m->height;
+        frame.m->pixel_format = V4L2_PIX_FMT_MJPEG;
+        frame.m->timestamp = m->timestamp;
+        frame.m->size = jpeg_data(m->pixel_format, m->data, m->width, m->height, output);
+        frame.m->data = output;
+        frame.m->detach();
+        free(output);
+        break;
+    }
+    default:
+        break;
+    }
+
+    return frame;
 }
 
 struct v4l2_private
@@ -508,23 +560,12 @@ v4l2_frame v4l2::read_frame() const
 
         auto buf = ::read_frame(m->fd);
         if (buf.bytesused) {
+            frame.m->width = m->fmt.width;
+            frame.m->height = m->fmt.height;
+            frame.m->pixel_format = m->fmt.pixelformat;
             frame.m->timestamp = buf.timestamp;
             frame.m->size = buf.bytesused;
             frame.m->data = (unsigned char *)((Buffer *)m->buffers)[buf.index].start;
-
-            switch (pixel_format()) {
-            case V4L2_PIX_FMT_YUYV:
-            case V4L2_PIX_FMT_UYVY:
-            case V4L2_PIX_FMT_RGB565:
-                if (m->requested_pixel_format == V4L2_PIX_FMT_MJPEG) {
-                    unsigned char *output = nullptr;
-                    frame.m->size = jpeg_data(pixel_format(), frame.m->data, native_width(), native_height(), output);
-                    frame.m->data = output;
-                    frame.m->detach();
-                    free(output);
-                }
-                break;
-            }
 
             return frame;
         }

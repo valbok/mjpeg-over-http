@@ -21,9 +21,14 @@ public:
     v4l2_frame &operator=(const v4l2_frame &other);
     operator bool() const;
 
+    size_t width() const;
+    size_t height() const;
+    unsigned pixel_format() const;
     const void *data() const;
     size_t size() const;
     struct timeval timestamp() const;
+
+    v4l2_frame convert(unsigned pixel_format) const;
 
 private:
     v4l2_frame_private *m = nullptr;
