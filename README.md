@@ -40,7 +40,7 @@ Useful when there is no [GStreamer](https://gstreamer.freedesktop.org/) availabl
 
 # Capture::socket
 
-List of socket based handlers.
+Used to handle TCP/IP connections.
 
     Capture::socket_listener s;
     // Opens port for connections
