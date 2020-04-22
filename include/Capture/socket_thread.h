@@ -11,6 +11,8 @@
 
 namespace Capture {
 
+using sockets = std::vector<socket>;
+
 class socket;
 class socket_thread_private;
 class socket_thread
@@ -21,7 +23,7 @@ public:
     ~socket_thread();
 
     void push(socket &&s);
-    void start(const std::function<void(const std::vector<socket> &)> &f);
+    void start(const std::function<void(sockets &)> &f);
     void stop();
 
 private:

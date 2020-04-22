@@ -195,4 +195,9 @@ bool socket::write(const void *str, size_t size)
     return true;
 }
 
+socket::operator bool() const
+{
+    return m->fd > 0;
+}
+
 } // Capture

@@ -373,14 +373,9 @@ size_t v4l2_frame::size() const
     return m->size;
 }
 
-int v4l2_frame::sec() const
+struct timeval v4l2_frame::timestamp() const
 {
-    return m->timestamp.tv_sec;
-}
-
-int v4l2_frame::usec() const
-{
-    return m->timestamp.tv_usec;
+    return m->timestamp;
 }
 
 struct v4l2_private

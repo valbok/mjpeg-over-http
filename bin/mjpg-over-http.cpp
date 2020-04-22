@@ -5,7 +5,6 @@
 #include <Capture/socket.h>
 #include <Capture/socket_thread.h>
 #include <Capture/v4l2.h>
-#include <Capture/v4l2_cache.h>
 
 #include <getopt.h>
 #include <signal.h>
@@ -184,14 +183,8 @@ int main(int argc, char **argv)
     std::cout << "Image size..........: " << v4l2.native_width() << "x" << v4l2.native_height() << std::endl;
     std::cout << std::endl;
 
-    Capture::v4l2_cache v4l2_cache(v4l2);
-    if (!v4l2_cache.start()) {
-        std::cerr << "Could not start camera thread";
-        exit(EXIT_FAILURE);
-    }
-
-    Capture::socket_thread worker_thread;
-    worker_thread.start([&](auto &batch) {
+    Capture::socket_thread stream_thread;
+    stream_thread.start([&](auto &batch) {
         auto frame = v4l2.read_frame();
         if (!frame)
             return;
@@ -200,21 +193,24 @@ int main(int argc, char **argv)
         header += "Content-Length: ";
         header += std::to_string(frame.size()) + "\r\n";
         header += "X-Timestamp: ";
-        header += std::to_string(frame.sec()) + "." + std::to_string(frame.usec()) + "\r\n";
+        header += std::to_string(frame.timestamp().tv_sec) + "." + std::to_string(frame.timestamp().tv_usec) + "\r\n";
         header += "\r\n";
 
-        for (size_t i = 0; i < batch.size(); ++i) {
-            auto socket = std::move(batch[i]);
-            if (!socket.write(header))
+        for (auto &socket : batch) {
+            if (!socket.write(header)) {
+                socket.close();
                 continue;
+            }
 
-            if (!socket.write(frame.data(), frame.size()))
+            if (!socket.write(frame.data(), frame.size())) {
+                socket.close();
                 continue;
+            }
 
-            if (!socket.write("\r\n--" BOUNDARY "\r\n"))
+            if (!socket.write("\r\n--" BOUNDARY "\r\n")) {
+                socket.close();
                 continue;
-
-            worker_thread.push(std::move(socket));
+            }
         }
     });
 
@@ -225,7 +221,7 @@ int main(int argc, char **argv)
                 if (!socket.write(HEADER_STREAM))
                     return;
 
-                worker_thread.push(std::move(socket));
+                stream_thread.push(std::move(socket));
                 return;
             }
             if (req.find(" /info ") != std::string::npos) {

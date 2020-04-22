@@ -40,6 +40,7 @@ public:
     std::string read_line() const;
     bool write(const std::string &str);
     bool write(const void *str, size_t size);
+    operator bool() const;
 
 private:
     socket(int fd);
@@ -52,4 +53,4 @@ private:
 
 } // Capture
 
-#endif // CAPTURE_SOCKET_H
+#endif

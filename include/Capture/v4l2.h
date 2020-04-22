@@ -23,8 +23,7 @@ public:
 
     const void *data() const;
     size_t size() const;
-    int sec() const;
-    int usec() const;
+    struct timeval timestamp() const;
 
 private:
     v4l2_frame_private *m = nullptr;
