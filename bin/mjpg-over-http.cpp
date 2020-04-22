@@ -185,6 +185,11 @@ int main(int argc, char **argv)
 
     Capture::socket_thread stream_thread;
     stream_thread.start([&](auto &batch) {
+        if (!v4l2.is_active()) {
+            batch.clear();
+            return;
+        }
+
         auto frame = v4l2.read_frame();
         if (!frame)
             return;

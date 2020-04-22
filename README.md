@@ -41,7 +41,7 @@ So using Motion-JPEG and 1920x1080, the driver provides video frames in 30 fps. 
     if (!cap.start(1920, 1080))
       return;
 
-    auto frame = cap.read_frame(buf);
+    auto frame = cap.read_frame();
     if (frame) {
       FILE *fp = fopen("frame.jpg", "wb");
       fwrite(frame.data(), frame.size(), 1, fp);
@@ -55,9 +55,15 @@ List of socket based handlers.
     Capture::socket_listener s;
     // Opens port for connections
     s.listen(hostname, port));
+    
     // A thread to handle connections
     Capture::socket_thread worker_thread;
-    worker_thread.start([&](auto &socket) { socket.write(response); return false; }
+    worker_thread.start(
+      [&](auto &batch) {
+        for (auto &socket : batch)
+          socket.write(response);
+      });
+    
     while (!stop) {
       // Waits for new connection and pushes it to worker thread
       s.accept([&](auto socket) {

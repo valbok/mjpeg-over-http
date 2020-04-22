@@ -425,7 +425,7 @@ unsigned v4l2::pixel_format() const
     return m->fmt.pixelformat;
 }
 
-bool v4l2::start(size_t width_hint, size_t height_hint, size_t pixel_format, size_t buffers_count)
+bool v4l2::start(size_t width_hint, size_t height_hint, unsigned pixel_format, size_t buffers_count)
 {
     if (m->active)
         return false;
@@ -491,7 +491,7 @@ v4l2_frame v4l2::read_frame() const
 
         r = select(m->fd + 1, &fds, NULL, NULL, &tv);
         if (r == -1) {
-            if (EINTR == errno)
+            if (errno == EINTR)
                 continue;
             break;
         }
@@ -509,6 +509,9 @@ v4l2_frame v4l2::read_frame() const
         }
 
         /* EAGAIN - continue select loop. */
+
+        if (errno == ENODEV)
+            break;
     }
 
     return frame;

@@ -37,7 +37,7 @@ public:
     v4l2(const std::string &device);
     ~v4l2();
 
-    bool start(size_t width_hint = 0, size_t height_hint = 0, size_t pixel_format = 0, size_t buffers_count = 5);
+    bool start(size_t width_hint = 0, size_t height_hint = 0, unsigned pixel_format = 0, size_t buffers_count = 5);
     void stop();
     bool is_active() const;
 
