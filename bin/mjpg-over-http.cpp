@@ -196,6 +196,9 @@ int main(int argc, char **argv)
         }
 
         auto frame = v4l2.read_frame();
+        if (frame && frame.pixel_format() != V4L2_PIX_FMT_MJPEG)
+            frame = frame.convert(V4L2_PIX_FMT_MJPEG);
+
         if (!frame)
             return;
 
