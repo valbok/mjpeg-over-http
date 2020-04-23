@@ -61,6 +61,21 @@ Used to handle TCP/IP connections.
       });
     }
 
+Capture::http_request is also useful to handle http requests:
+
+      Capture::http_request http(socket);
+
+      if (credentials != http.basic_authorization()) {
+        socket.write(access_denied);
+        return;
+      }
+
+      if (http.uri() == "/data") {
+          if (!socket.write(data))
+              return;
+      }
+
+
 # Build
 
     $ meson build --prefix=/path/to/install
