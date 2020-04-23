@@ -53,7 +53,6 @@ int main(int argc, char **argv)
                 queue.pop();
                 lock.unlock();
 
-                std::string req = socket.read_line();
                 static const std::string resp =
                     "HTTP/1.1 200 OK\r\n" \
                     "Access-Control-Allow-Origin: *\r\n" \

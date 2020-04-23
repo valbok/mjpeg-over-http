@@ -37,7 +37,6 @@ public:
 
     int fd() const;
     void close();
-    std::string read_line() const;
     bool write(const std::string &str);
     bool write(const void *str, size_t size);
     operator bool() const;
@@ -49,6 +48,25 @@ private:
 
 	socket_private *m = nullptr;
     friend class socket_listener;
+};
+
+class http_request_private;
+class http_request
+{
+public:
+    http_request(socket &socket);
+    ~http_request();
+
+    std::string header() const;
+    std::string method() const;
+    std::string uri() const;
+    std::string basic_authorization() const;
+
+private:
+    http_request(const http_request &other) = delete;
+    http_request &operator=(const http_request &other) = delete;
+
+    http_request_private *m = nullptr;
 };
 
 } // Capture

@@ -49,6 +49,8 @@ static void help()
 
 #define HEADER_OK "HTTP/1.1 200 OK\r\n"
 #define HEADER_404 "HTTP/1.0 404 Not Found\r\n"
+#define HEADER_401 "HTTP/1.0 401 Unauthorized\r\n" \
+    "WWW-Authenticate: Basic realm=\"MJPG-Over-HTTP\"\r\n"
 
 static bool stop = false;
 
@@ -274,19 +276,25 @@ int main(int argc, char **argv)
 
     while (!stop) {
         s.accept([&](auto socket) {
-            std::string req = socket.read_line();
-            if (req.find(" /stream ") != std::string::npos) {
+            Capture::http_request http(socket);
+
+            if (!credentials.empty() && credentials != http.basic_authorization()) {
+                send(socket, HEADER_401, "Access denied");
+                return;
+            }
+
+            if (http.uri() == "/stream") {
                 if (!socket.write(HEADER_STREAM))
                     return;
 
                 stream_thread.push(std::move(socket));
                 return;
             }
-            if (req.find(" /snapshot ") != std::string::npos) {
+            if (http.uri() == "/snapshot") {
                 snapshot_thread.push(std::move(socket));
                 return;
             }
-            if (req.find(" /info ") != std::string::npos) {
+            if (http.uri() == "/info") {
                 send(socket, HEADER_OK, "Capture/mjpg-over-http");
                 return;
             }
