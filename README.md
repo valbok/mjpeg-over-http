@@ -44,7 +44,8 @@ Used to handle TCP/IP connections.
 
     Capture::socket_listener s;
     // Opens port for connections
-    s.listen(hostname, port));
+    if (!s.listen(hostname, port)))
+      return;
     
     // A thread to handle connections
     Capture::socket_thread worker_thread;
