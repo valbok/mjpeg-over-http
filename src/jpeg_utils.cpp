@@ -37,9 +37,9 @@ int jpeg_data(unsigned pixel_format, unsigned char *input, size_t width, size_t 
     jpeg_start_compress(&cinfo, TRUE);
 
     int z = 0;
-    std::vector<uint8_t> line_buffer(width * 3);    
+    std::vector<uint8_t> line_buffer(width * 3);
     JSAMPROW row_pointer[1];
-    
+
     if (pixel_format == V4L2_PIX_FMT_YUYV) {
         while (cinfo.next_scanline < cinfo.image_height) {
             unsigned char *ptr = line_buffer.data();
@@ -67,7 +67,7 @@ int jpeg_data(unsigned pixel_format, unsigned char *input, size_t width, size_t 
                     input += 4;
                 }
             }
-            
+
             row_pointer[0] = line_buffer.data();
             jpeg_write_scanlines(&cinfo, row_pointer, 1);
         }
@@ -81,10 +81,10 @@ int jpeg_data(unsigned pixel_format, unsigned char *input, size_t width, size_t 
                 *(ptr++) = ((input[0] & 31) * 8);
                 input += 2;
             }
-            
+
             row_pointer[0] = line_buffer.data();
             jpeg_write_scanlines(&cinfo, row_pointer, 1);
-        }        
+        }
     } else if (pixel_format == V4L2_PIX_FMT_UYVY) {
         while (cinfo.next_scanline < cinfo.image_height) {
             unsigned char *ptr = line_buffer.data();
@@ -113,6 +113,7 @@ int jpeg_data(unsigned pixel_format, unsigned char *input, size_t width, size_t 
                 }
             }
 
+            row_pointer[0] = line_buffer.data();
             jpeg_write_scanlines(&cinfo, row_pointer, 1);
         }
     }
