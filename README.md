@@ -1,9 +1,9 @@
 # Motion-JPEG over HTTP
 
-Streams the video from a camera over HTTP in Motion-JPEG.
+Takes video buffers using v4l2 and streams them over HTTP in Motion-JPEG.
+Designed to handle the resources efficiently.
 
 HTTP streaming creates packets of a sequence of JPEG images that can be received by clients.
-Similar idea to [mjpg-streamer](https://github.com/jacksonliam/mjpg-streamer), but a bit simpler.
 
     $ ./bin/mjpeg-over-http
     Host................: 0.0.0.0
@@ -12,8 +12,9 @@ Similar idea to [mjpg-streamer](https://github.com/jacksonliam/mjpg-streamer), b
     Device..............: /dev/video0
     Image size..........: 640x480
 
-Now you can access the video stream by openning http://127.0.0.1:8080/stream in a browser, or inserting html tag &lt;img src="http://127.0.0.1:8080/stream" /&gt; to your webpage.
-http://127.0.0.1:8080/snapshot could be used to get a snapshot from the camera.
+- Now you can access the video stream by openning http://127.0.0.1:8080/stream in a browser, 
+- or inserting html tag &lt;img src="http://127.0.0.1:8080/stream" /&gt; to your webpage.
+- http://127.0.0.1:8080/snapshot could be used to get a snapshot from the camera.
 
 Some clients such as QuickTime or VLC also can be used to view the stream.
 
