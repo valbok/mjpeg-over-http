@@ -5,7 +5,7 @@ Streams the video from a camera using HTTP.
 HTTP streaming creates packets of a sequence of JPEG images that can be received by clients.
 Similar idea to [mjpg-streamer](https://github.com/jacksonliam/mjpg-streamer), but a bit simpler.
 
-    $ ./bin/mjpg-over-http
+    $ ./bin/mjpeg-over-http
     Host................: 0.0.0.0
     Port................: 8080
     Authorization: Basic: disabled

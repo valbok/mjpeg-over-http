@@ -29,12 +29,12 @@ static void help()
 }
 
 #define HEADER_DEFAULT "Connection: close\r\n" \
-    "Server: MJPG-Over-HTTP\r\n" \
+    "Server: MJPEG-Over-HTTP\r\n" \
     "Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0\r\n" \
     "Pragma: no-cache\r\n" \
     "Expires: Mon, 3 Jan 2000 00:00:00 GMT\r\n"
 
-#define BOUNDARY "mjpg-over-http-boundary"
+#define BOUNDARY "mjpeg-over-http-boundary"
 #define HEADER_STREAM "HTTP/1.0 200 OK\r\n" \
     "Access-Control-Allow-Origin: *\r\n" \
     HEADER_DEFAULT \
@@ -50,7 +50,7 @@ static void help()
 #define HEADER_OK "HTTP/1.1 200 OK\r\n"
 #define HEADER_404 "HTTP/1.0 404 Not Found\r\n"
 #define HEADER_401 "HTTP/1.0 401 Unauthorized\r\n" \
-    "WWW-Authenticate: Basic realm=\"MJPG-Over-HTTP\"\r\n"
+    "WWW-Authenticate: Basic realm=\"MJPEG-Over-HTTP\"\r\n"
 
 static bool stop = false;
 
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
                 return;
             }
             if (http.uri() == "/info") {
-                send(socket, HEADER_OK, "Capture/mjpg-over-http");
+                send(socket, HEADER_OK, "Capture/mjpeg-over-http");
                 return;
             }
 
