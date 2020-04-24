@@ -1,9 +1,8 @@
 # Motion-JPEG over HTTP
 
-Takes video buffers using v4l2 and streams them over HTTP in Motion-JPEG.
+Allows to take video buffers using v4l2 and streams them over HTTP in Motion-JPEG.
 Designed to handle the resources efficiently.
 
-HTTP streaming creates packets of a sequence of JPEG images that can be received by clients.
 
     $ ./bin/mjpeg-over-http
     Host................: 0.0.0.0
