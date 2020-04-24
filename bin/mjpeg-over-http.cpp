@@ -52,6 +52,12 @@ static void help()
 #define HEADER_401 "HTTP/1.0 401 Unauthorized\r\n" \
     "WWW-Authenticate: Basic realm=\"MJPEG-Over-HTTP\"\r\n"
 
+#define INFO "Motion-JPEG over HTTP<br/>" \
+    "* <a href=\"/stream\">Live video stream</a><br/>" \
+    "<img src=\"/stream\"/><br/><br/>" \
+    "* <a href=\"/snapshot\" onclick=\"document.getElementById('img').src='/snapshot';return false;\">Take snapshot</a><br/>" \
+    "<img id=\"img\" /><br/>"
+
 static bool stop = false;
 
 static void signal_handler(int sig)
@@ -153,7 +159,7 @@ static bool parse_opts(int argc, char **argv,
 
 static void send(Capture::socket &socket, std::string header, const std::string &mess)
 {
-    header += "Content-type: text/plain\r\n";
+    header += "Content-type: text/html\r\n";
     header += "Content-length: ";
     header += std::to_string(mess.size()) + "\r\n";
     header += HEADER_DEFAULT;
@@ -282,7 +288,10 @@ int main(int argc, char **argv)
                 send(socket, HEADER_401, "Access denied");
                 return;
             }
-
+            if (http.uri() == "/") {
+                send(socket, HEADER_OK, INFO);
+                return;
+            }
             if (http.uri() == "/stream") {
                 if (!socket.write(HEADER_STREAM))
                     return;
@@ -292,10 +301,6 @@ int main(int argc, char **argv)
             }
             if (http.uri() == "/snapshot") {
                 snapshot_thread.push(std::move(socket));
-                return;
-            }
-            if (http.uri() == "/info") {
-                send(socket, HEADER_OK, "Capture/mjpeg-over-http");
                 return;
             }
 
