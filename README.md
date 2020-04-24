@@ -1,6 +1,6 @@
 # Motion-JPEG over HTTP
 
-Streams the video from a camera using HTTP.
+Streams the video from a camera over HTTP in Motion-JPEG.
 
 HTTP streaming creates packets of a sequence of JPEG images that can be received by clients.
 Similar idea to [mjpg-streamer](https://github.com/jacksonliam/mjpg-streamer), but a bit simpler.
