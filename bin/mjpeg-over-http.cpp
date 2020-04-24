@@ -52,7 +52,7 @@ static void help()
 #define HEADER_401 "HTTP/1.0 401 Unauthorized\r\n" \
     "WWW-Authenticate: Basic realm=\"MJPEG-Over-HTTP\"\r\n"
 
-#define INFO "Motion-JPEG over HTTP<br/>" \
+#define INFO "Motion-JPEG over HTTP:<br/>" \
     "<a href=\"/stream\">Live video stream</a><br/>" \
     "<img src=\"/stream\"/><br/><br/>" \
     "<a href=\"/snapshot\" onclick=\"document.getElementById('img').src='/snapshot';return false;\">Take snapshot</a><br/>" \
