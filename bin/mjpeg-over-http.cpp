@@ -53,9 +53,9 @@ static void help()
     "WWW-Authenticate: Basic realm=\"MJPEG-Over-HTTP\"\r\n"
 
 #define INFO "Motion-JPEG over HTTP<br/>" \
-    "* <a href=\"/stream\">Live video stream</a><br/>" \
+    "<a href=\"/stream\">Live video stream</a><br/>" \
     "<img src=\"/stream\"/><br/><br/>" \
-    "* <a href=\"/snapshot\" onclick=\"document.getElementById('img').src='/snapshot';return false;\">Take snapshot</a><br/>" \
+    "<a href=\"/snapshot\" onclick=\"document.getElementById('img').src='/snapshot';return false;\">Take snapshot</a><br/>" \
     "<img id=\"img\" /><br/>"
 
 static bool stop = false;
