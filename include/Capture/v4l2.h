@@ -16,7 +16,7 @@ public:
     v4l2_frame();
     ~v4l2_frame();
 
-    v4l2_frame(const v4l2_frame &&other);
+    v4l2_frame(v4l2_frame &&other);
     v4l2_frame(const v4l2_frame &other);
     v4l2_frame &operator=(const v4l2_frame &other);
     operator bool() const;

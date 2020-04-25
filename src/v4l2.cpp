@@ -346,16 +346,12 @@ v4l2_frame::~v4l2_frame()
     delete m;
 }
 
-v4l2_frame::v4l2_frame(const v4l2_frame &&other)
+v4l2_frame::v4l2_frame(v4l2_frame &&other)
+    : v4l2_frame()
 {
+    auto tmp = m;
     m = other.m;
-    other.m->width = 0;
-    other.m->height = 0;
-    other.m->pixel_format = 0;
-    other.m->size = 0;
-    other.m->data = nullptr;
-    other.m->detached = false;
-    CLEAR(other.m->timestamp);
+    other.m = tmp;
 }
 
 v4l2_frame::v4l2_frame(const v4l2_frame &other)
