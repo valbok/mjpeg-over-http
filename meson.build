@@ -5,7 +5,7 @@ inc = include_directories('include')
 subdir('include')
 subdir('src')
 subdir('bin')
-subdir('tests')
+subdir('examples')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(libraries : v4l2_lib,
