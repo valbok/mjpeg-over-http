@@ -77,8 +77,27 @@ Capture::http_request is also useful to handle http requests:
               return;
       }
 
+# Qt5Multimedia example
+
+There is an example in examples/receiver that shows how to use Capture::mjpeg_stream to parse the video stream and render it to VideoOutput QML item:
+
+      Capture::mjpeg_stream stream([&](const unsigned char *data, size_t size) {
+        QVideoFrame frame = QImage::fromData(data, size, "JPG");
+        if (!videoOutput->videoSurface()->isActive()) {
+          QVideoSurfaceFormat format(frame.size(), frame.pixelFormat());
+          videoOutput->videoSurface()->start(format);
+        }
+        videoOutput->videoSurface()->present(frame);
+      });
+
+      QObject::connect(reply, &QIODevice::readyRead, [&]{
+        auto d = reply->readAll();
+        stream.read(d.constData(), d.size());
+      });
+
 
 # Build
 
     $ meson build --prefix=/path/to/install
     $ ninja install -C build/
+
