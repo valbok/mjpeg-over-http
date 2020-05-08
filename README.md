@@ -82,6 +82,7 @@ Capture::http_request is also useful to handle http requests:
 
 There is an example in [examples/receiver](https://github.com/valbok/mjpeg-over-http/blob/master/examples/receiver/main.cpp) that shows how to use Capture::mjpeg_stream to parse the video stream and render it to VideoOutput QML item, or QVideoWidget or QGraphicsVideoItem:
 
+      auto reply = qnam.get(QNetworkRequest(QUrl("http://127.0.0.1:8080/stream")));
       Capture::mjpeg_stream stream([&](const unsigned char *data, size_t size) {
         QVideoFrame frame = QImage::fromData(data, size, "JPG");
         if (!videoOutput->videoSurface()->isActive()) {
