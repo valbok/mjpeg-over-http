@@ -1,8 +1,9 @@
 # Motion-JPEG over HTTP
 
-Allows to take video buffers using v4l2 and streams them over HTTP in Motion-JPEG.
+A toolset that allows to take video buffers using v4l2 and streams them over HTTP in Motion-JPEG.
 Designed to handle the resources efficiently.
 
+Plug-in a web camera and run:
 
     $ ./bin/mjpeg-over-http
     Host................: 0.0.0.0
@@ -16,7 +17,7 @@ Designed to handle the resources efficiently.
 - http://127.0.0.1:8080/snapshot could be used to get a snapshot from the camera.
 - Some clients such as QuickTime or VLC also can be used to view the stream.
 
-The solution consists of several separate parts:
+The solution consists of several separate tools:
 
 # Capture::v4l2
 
@@ -79,7 +80,7 @@ Capture::http_request is also useful to handle http requests:
 
 # Qt5Multimedia example
 
-There is an example in [examples/receiver](https://github.com/valbok/mjpeg-over-http/blob/master/examples/receiver/main.cpp) that shows how to use Capture::mjpeg_stream to parse the video stream and render it to VideoOutput QML item:
+There is an example in [examples/receiver](https://github.com/valbok/mjpeg-over-http/blob/master/examples/receiver/main.cpp) that shows how to use Capture::mjpeg_stream to parse the video stream and render it to VideoOutput QML item, or QVideoWidget or QGraphicsVideoItem:
 
       Capture::mjpeg_stream stream([&](const unsigned char *data, size_t size) {
         QVideoFrame frame = QImage::fromData(data, size, "JPG");
