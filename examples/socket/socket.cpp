@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     }
 
     std::cout << "Waiting for connections to 127.0.0.1:8080..." << std::endl;
-    
+
     std::queue<Capture::socket> queue;
 
     std::thread worker(
