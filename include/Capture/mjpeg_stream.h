@@ -16,7 +16,7 @@ class mjpeg_stream
 public:
     mjpeg_stream(const std::function<void(const unsigned char *, size_t)> &cb);
     ~mjpeg_stream();
-    bool read(const char *stream, size_t size);
+    void read(const char *stream, size_t size);
 
 private:
     mjpeg_stream(const mjpeg_stream &other) = delete;

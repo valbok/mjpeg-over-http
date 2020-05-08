@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 
     QObject::connect(reply, &QNetworkReply::finished, [&] {
         if (reply->error())
-            qWarning() << reply->errorString().toLatin1().constData();
+            qWarning() << "ERROR:" << reply->errorString().toLatin1().constData();
     });
 
     Capture::mjpeg_stream stream([&](const unsigned char *data, size_t size) {
