@@ -11,7 +11,7 @@ namespace Capture {
 
 struct mjpeg_stream_private
 {
-	std::function<void(const unsigned char *, size_t)> parsed;
+    std::function<void(const unsigned char *, size_t)> parsed;
     std::vector<unsigned char> vec;
     size_t content_length = 0;
 
@@ -19,13 +19,13 @@ struct mjpeg_stream_private
 };
 
 mjpeg_stream::mjpeg_stream(const std::function<void(const unsigned char *, size_t)> &cb)
-	: m(new mjpeg_stream_private{cb})
+    : m(new mjpeg_stream_private{cb})
 {
 }
 
 mjpeg_stream::~mjpeg_stream()
 {
-	delete m;
+    delete m;
 }
 
 static std::string read_line(const char *&b, const char *e)

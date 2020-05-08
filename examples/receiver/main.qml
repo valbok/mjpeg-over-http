@@ -4,6 +4,13 @@ import QtQuick.Window 2.3
 
 Item {
     width: 800; height: 600;
+
+    VideoOutput {
+        id: vo
+        anchors.fill: parent
+        objectName: "videoOutput"
+    }
+
     Text {
         text: "QML"
         horizontalAlignment: Text.AlignHCenter
@@ -11,12 +18,6 @@ Item {
         font.pointSize: 24
         color: "red"
         anchors.fill: parent
-    }
-
-    VideoOutput {
-        id: vo
-        anchors.fill: parent
-        objectName: "videoOutput"
     }
 }
 
